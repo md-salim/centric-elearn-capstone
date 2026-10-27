@@ -287,3 +287,318 @@ Required real MySQL 8.4 tests (throwaway DB from `compose.yaml`, DbUp applying V
 8. Concurrency: `row_version INT NOT NULL DEFAULT 0` on `rooms` and `bookings`, `IsConcurrencyToken()`, increment in a `SaveChangesAsync` override, map `DbUpdateConcurrencyException` to `ConflictException` (409) in the repository. For AssignRoom, **touch the room row** (version bump) so the room is the serialisation point, with `SELECT ... FOR UPDATE` as the alternative; a unique constraint cannot enforce date overlap and a `bookings` version alone does not prevent double assignment.
 9. Prove all of it on real MySQL 8.4 (section 5.5); InMemory cannot.
 10. Side findings: `booking_notes.note` 255 vs 1000, no FK on `room_status_history.changed_by_user_id`.
+
+
+---
+
+# DB analysis: MCP read-only views (02-mcp-views.sql)
+
+Scope: the five views in the "View column contract" of `FEATURE-mcp-server.md`, the booking status values, index use, the cost of a `vw_rooms_status` self-join, and whether `SQL SECURITY DEFINER` lets a view-only user read the views. Inputs read: `FEATURE-mcp-server.md`, migrations `V001` to `V007`, `Domain/Turnaround.cs`, `Domain/Entities.cs`, `Repositories/BookingRepository.cs`, `Repositories/HousekeepingRepository.cs`, `Services/HousekeepingService.cs`.
+
+## M0. Measured versus reasoned
+
+**Nothing in this section was measured.** I did not connect to any database. A MySQL 8.0 client exists on this machine and something answers on 127.0.0.1:3306, but I have no credentials, and I did not guess or probe. The SQL below has not been executed, not even for syntax. Treat every plan statement as reasoned from the MySQL 8.4 manual and the schema, and verify it with the commands in M6 on a throwaway MySQL 8.4 before merge.
+
+| Claim | Basis |
+|---|---|
+| Column, index and seed facts | Read from migrations (checked) |
+| Booking status strings, arrival rule | Read from code (checked) |
+| `minutes_over` arithmetic equals `Turnaround.MinutesOver` | Worked by hand on boundary cases (M1.2), not run |
+| Index use, condition pushdown, row counts, costs | Reasoned from the manual, not measured |
+| DEFINER behaviour | Reasoned from the manual, not measured |
+
+## M1. Proposed `db-setup/02-mcp-views.sql` (not applied)
+
+Prerequisites: run after the API has started once, so `V006` (columns on `rooms`, `room_types.sla_minutes`) and `V007` (`housekeeper_floors`) exist. All stored times are `DATETIME(0)` in UTC, so comparing with `UTC_TIMESTAMP()` is correct whatever the session `time_zone`. No view exposes `email`, `phone`, `address_line`, `postcode`, `password_hash`, `notes`, `reason`, `ooo_reason`, or any guest column. The only person-name column is `display_name` in `vw_housekeeper_load`.
+
+### M1.1 `vw_rooms_status`
+
+```sql
+CREATE OR REPLACE VIEW vw_rooms_status AS
+SELECT r.hotel_id,
+       h.code                AS hotel_code,
+       r.id                  AS room_id,
+       r.room_number,
+       r.floor,
+       rt.code               AS room_type_code,
+       rt.name               AS room_type_name,
+       r.status,
+       r.self_marked,
+       r.checked_out_at,
+       r.ready_at,
+       r.expected_return_at,
+       rt.sla_minutes,
+       r.checked_out_at + INTERVAL rt.sla_minutes MINUTE AS due_at   -- NULL when checked_out_at is NULL
+FROM rooms r
+JOIN hotels h      ON h.id  = r.hotel_id
+JOIN room_types rt ON rt.id = r.room_type_id;
+```
+
+Columns match the contract exactly, in order. `ooo_reason` and `notes` are deliberately not selected. This view has no aggregate, so MySQL merges it into the outer query (reasoned).
+
+### M1.2 `vw_sla_breaches`
+
+```sql
+CREATE OR REPLACE VIEW vw_sla_breaches AS
+SELECT s.hotel_id, s.hotel_code, s.room_id, s.room_number, s.floor,
+       s.room_type_code, s.room_type_name, s.status,
+       s.checked_out_at, s.ready_at, s.sla_minutes, s.due_at,
+       (TIMESTAMPDIFF(SECOND, s.due_at,
+                      CASE WHEN s.status = 'Ready' THEN s.ready_at ELSE UTC_TIMESTAMP() END)
+        + 59) DIV 60 AS minutes_over
+FROM vw_rooms_status s
+WHERE s.checked_out_at IS NOT NULL
+  AND (   (s.status <> 'Ready' AND UTC_TIMESTAMP() > s.due_at)
+       OR (s.status =  'Ready' AND s.ready_at IS NOT NULL
+           AND s.ready_at > s.due_at
+           AND s.ready_at >= UTC_TIMESTAMP() - INTERVAL 24 HOUR));
+```
+
+Parity with the C# code (`Turnaround.MinutesOver`: `seconds <= 0 ? 0 : ceil(seconds / 60)`; `EndAt`: ready time for Ready, otherwise now):
+
+| seconds past due | C# | SQL `(secs + 59) DIV 60` | listed? |
+|---|---|---|---|
+| 0 (exactly on target) | 0 | not selected, `end > due` is false | no |
+| 1 | 1 | 60 DIV 60 = 1 | yes |
+| 60 | 1 | 119 DIV 60 = 1 | yes |
+| 61 | 2 | 120 DIV 60 = 2 | yes |
+
+The `WHERE` only admits `secs > 0`, so `DIV` never sees a negative. Stored times are whole seconds, so `TIMESTAMPDIFF(SECOND, ...)` is exact. Integer `DIV` avoids relying on DECIMAL rounding of `/ 60`. Worked by hand, not run.
+
+Rules copied from `HousekeepingRepository.ListLateRoomsAsync` (lines 81 to 95) so the view and `late-rooms` agree. The contract does not state them:
+1. A non-Ready room is late if `now > due`. This **includes `OutOfOrder` rooms** that still have a `checked_out_at`. That is what the API does; a manager may not want a room under repair in the breach list. Flag, do not change silently.
+2. A Ready room is listed only if it became Ready after its target **and within the last 24 hours** (`LateReadyWindow`, `HousekeepingService.cs` line 32). The 24 hours is now written in two places (C# and this view). If one changes, AC_05/AC_06 parity breaks. The FEATURE's phrase "only rooms that are late" hides this.
+3. Rooms with no `checked_out_at` never appear.
+
+**Defect in the FEATURE to fix before the tool is built:** AC_05 passes `asOf` (10:45:00, then 10:46) to `rooms_breaching_sla`, but this view is fixed to `UTC_TIMESTAMP()`, so it cannot honour `asOf`. The named tool must read `vw_rooms_status` and take `asOf` as a parameter (`?`, never string-built):
+
+```sql
+SELECT room_id, room_number, floor, room_type_name AS room_type, status,
+       checked_out_at, due_at, sla_minutes,
+       (TIMESTAMPDIFF(SECOND, due_at, CASE WHEN status = 'Ready' THEN ready_at ELSE ? END) + 59) DIV 60 AS minutes_over
+FROM vw_rooms_status
+WHERE hotel_id = ? AND checked_out_at IS NOT NULL
+  AND (   (status <> 'Ready' AND ? > due_at)
+       OR (status =  'Ready' AND ready_at IS NOT NULL AND ready_at <= ?
+           AND ready_at > due_at AND ready_at >= ? - INTERVAL 24 HOUR))
+ORDER BY minutes_over DESC, floor, room_number;
+```
+
+`asOf` must be truncated to whole seconds and passed as a UTC DATETIME string. The extra `ready_at <= ?` keeps a "Ready after asOf" row out of a past `asOf`; the API has no such term because its clock is always now. `vw_sla_breaches` then serves `run_readonly_query` and the "as of now" case only.
+
+### M1.3 `vw_ooo_impact` (LEAD over `room_status_history`)
+
+```sql
+CREATE OR REPLACE VIEW vw_ooo_impact AS
+SELECT x.hotel_id, x.room_id, x.room_number, x.room_type_code,
+       x.changed_at      AS ooo_from,
+       x.next_changed_at AS ooo_to          -- NULL while still out of order
+FROM (
+  SELECT r.hotel_id, h.room_id, r.room_number, rt.code AS room_type_code,
+         h.to_status, h.changed_at,
+         LEAD(h.changed_at) OVER (PARTITION BY r.hotel_id, h.room_id
+                                  ORDER BY h.changed_at, h.id) AS next_changed_at
+  FROM room_status_history h
+  JOIN rooms r       ON r.id  = h.room_id
+  JOIN room_types rt ON rt.id = r.room_type_id
+) x
+WHERE x.to_status = 'OutOfOrder';
+```
+
+Points that matter:
+- `LEAD` runs over **all** history rows of the room, and `to_status = 'OutOfOrder'` is applied **after**, in the outer query. Filtering first would make `LEAD` return the next OOO row and merge separate intervals.
+- **Still OOO / no closing row:** the last history row of a room has no successor, so `LEAD` gives NULL and `ooo_to` is NULL. This is not an edge case in the data: all six OOO rooms in the seed (rooms 11, 34, 55, 78, 87, 109; history ids 119 to 124, all `2026-09-28 14:00:00`) have an open interval (`V004__seed_bookings.sql` lines 733 to 740). Consumers must treat NULL as "to now" or "to the range end"; the tool query below does.
+- **Tie-break:** `changed_at` has one-second resolution, so `ORDER BY changed_at, id` makes two moves in the same second deterministic. The secondary index `(room_id, changed_at)` carries the primary key implicitly, so it can deliver that order.
+- `PARTITION BY r.hotel_id, h.room_id` (hotel first) is deliberate. From 8.0.22, MySQL can push a `WHERE hotel_id = ?` condition into a derived table that has a window function only when it references the `PARTITION BY` columns (reasoned from the manual; verify with EXPLAIN). A bare `PARTITION BY room_id` would window the whole history on every call, because the tool filters by hotel.
+- **Invisible OOO (Q5):** a room whose `rooms.status` is `OutOfOrder` but which has no `OutOfOrder` history row cannot appear. The seed has none, but a room set by hand would be missed. A check query for the owner:
+  ```sql
+  SELECT r.id, r.hotel_id, r.room_number FROM rooms r
+  WHERE r.status = 'OutOfOrder'
+    AND NOT EXISTS (SELECT 1 FROM vw_ooo_impact o WHERE o.room_id = r.id AND o.ooo_to IS NULL);
+  ```
+  I did not add a fallback `UNION` row because its start time would be invented.
+- A duplicate `OutOfOrder -> OutOfOrder` history row would split an interval in two. I did not trace every write path to prove it cannot happen; `COUNT(DISTINCT)` in the night count below makes the result immune.
+
+Illustrative named-tool query for `roomNightsLost` (both ends inclusive, the plan's default for Q5; a night is lost if the room is out of order at any moment of that calendar date; this definition needs the owner's answer to Q5):
+
+```sql
+WITH RECURSIVE nights AS (
+  SELECT CAST(? AS DATE) AS d
+  UNION ALL
+  SELECT d + INTERVAL 1 DAY FROM nights WHERE d < CAST(? AS DATE)
+)
+SELECT o.room_id, o.room_number, o.room_type_code, COUNT(DISTINCT n.d) AS nights_lost
+FROM vw_ooo_impact o
+JOIN nights n ON o.ooo_from < n.d + INTERVAL 1 DAY
+             AND (o.ooo_to IS NULL OR o.ooo_to > n.d)
+WHERE o.hotel_id = ?
+GROUP BY o.room_id, o.room_number, o.room_type_code;
+```
+
+Only dates in `[from, to]` are generated, so counting is clipped to the range; this covers an interval that starts before `from` and one that is still open. The default `cte_max_recursion_depth` is 1000, so ranges over 1000 days fail; the tool should cap the range and say so. `roomNightsAvailable` needs the room count (`SELECT COUNT(*) FROM vw_rooms_status WHERE hotel_id = ?`) times the number of dates (current inventory only).
+
+### M1.4 `vw_housekeeper_load`
+
+```sql
+CREATE OR REPLACE VIEW vw_housekeeper_load AS
+SELECT hf.hotel_id,
+       hf.user_id               AS housekeeper_id,
+       u.display_name,
+       d.work_date,
+       hf.floor,
+       fr.rooms_on_floor        AS rooms_assigned,
+       COALESCE(c.rooms_done,0) AS rooms_completed
+FROM housekeeper_floors hf
+JOIN users u ON u.id = hf.user_id
+JOIN (SELECT hotel_id, floor, COUNT(*) AS rooms_on_floor
+      FROM rooms GROUP BY hotel_id, floor) fr
+       ON fr.hotel_id = hf.hotel_id AND fr.floor = hf.floor
+JOIN (SELECT UTC_DATE() AS work_date
+      UNION
+      SELECT DATE(changed_at) FROM room_status_history WHERE to_status = 'Ready') d
+LEFT JOIN (SELECT r.hotel_id, r.floor, h.changed_by_user_id AS user_id,
+                  DATE(h.changed_at) AS work_date,
+                  COUNT(DISTINCT h.room_id) AS rooms_done
+           FROM room_status_history h
+           JOIN rooms r ON r.id = h.room_id
+           WHERE h.to_status = 'Ready' AND h.changed_by_user_id IS NOT NULL
+           GROUP BY r.hotel_id, r.floor, h.changed_by_user_id, DATE(h.changed_at)) c
+       ON  c.hotel_id = hf.hotel_id AND c.floor = hf.floor
+       AND c.user_id  = hf.user_id  AND c.work_date = d.work_date;
+```
+
+The tool derives `outstanding = rooms_assigned - rooms_completed` (clamped at 0). Decisions the contract leaves open (Q6), which I had to make and the owner must confirm:
+- **`rooms_assigned` is the number of rooms on the floor today**, not the rooms that needed turning that day. There is no assignment history (`V007` holds only the current floor per `(hotel_id, floor)`), so a past `work_date` shows today's floors and room count. State this in the tool description.
+- **`rooms_completed` counts distinct rooms moved to `Ready` by that user on that date**, on a floor that user holds now. `Inspected` is not counted. Self-marked Ready moves are counted; to exclude them add `AND h.self_marked = 0` (history has the column since `V006`).
+- A Ready move by someone who no longer holds that floor is credited to nobody.
+- Housekeepers with no floor do not appear (`housekeeper_floors` drives the view). Inactive users are not filtered; add `AND u.active = 1` if wanted.
+- Dates offered are today plus every date with a Ready move. Today always has rows, even with zero completions, so `outstanding` is meaningful. A past date with no Ready moves returns no rows, not zeros.
+- `changed_by_user_id` has no foreign key (side finding 10 in section 6 above), so a bad id simply never matches a floor holder.
+
+### M1.5 `vw_arrivals_vs_ready`
+
+```sql
+CREATE OR REPLACE VIEW vw_arrivals_vs_ready AS
+SELECT b.hotel_id,
+       rt.code  AS room_type_code,
+       rt.name  AS room_type_name,
+       b.check_in AS arrival_date,
+       COUNT(*) AS arrivals,
+       MAX(COALESCE(rr.ready_rooms, 0)) AS ready_rooms
+FROM bookings b
+JOIN room_types rt ON rt.id = b.room_type_id
+LEFT JOIN (SELECT hotel_id, room_type_id, COUNT(*) AS ready_rooms
+           FROM rooms WHERE status = 'Ready'
+           GROUP BY hotel_id, room_type_id) rr
+       ON rr.hotel_id = b.hotel_id AND rr.room_type_id = b.room_type_id
+WHERE b.status = 'Confirmed'
+GROUP BY b.hotel_id, rt.code, rt.name, b.check_in;
+```
+
+`ready_rooms` is the **current** Ready count, repeated on every date row, so it is only meaningful for `arrival_date = UTC_DATE()`. That is why the FEATURE's Q7 proposes an error for other dates. `MAX(...)` only satisfies `ONLY_FULL_GROUP_BY`; the value is the same across the group. Room types with no arrivals have no row. The tool's `shortfall` (`arrivals - ready_rooms`, only where positive) does not need them, but `readyRooms` for a type with no arrivals is not available through this view. Ready rooms already held by an assigned booking are not subtracted (Q7, open).
+
+## M2. Booking status values and what counts as an arrival
+
+From `Domain/Entities.cs`, `BookingStatuses` (the strings stored in `bookings.status`, which is `VARCHAR(20) NOT NULL` with no CHECK constraint, so the database does not enforce them):
+
+| Constant | Stored value |
+|---|---|
+| Confirmed | `Confirmed` |
+| CheckedIn | `CheckedIn` |
+| CheckedOut | `CheckedOut` |
+| Cancelled | `Cancelled` |
+| NoShow | `NoShow` |
+
+The seed (`V004`) uses `Confirmed` and `CheckedIn` in the lines I sampled; I did not tabulate every row. SQL comparison is case-insensitive under the default `utf8mb4_0900_ai_ci` collation, C# comparison is case-sensitive.
+
+**Arrival rule in code:** `BookingRepository.ListArrivalsAsync` (lines 68 to 73) uses `CheckIn == date AND Status == Confirmed`, nothing else. A booking already `CheckedIn` is not an arrival, nor is `Cancelled`, `NoShow` or `CheckedOut`. `vw_arrivals_vs_ready` uses the same rule (`status = 'Confirmed'`), so its count equals the API arrivals list for a date.
+
+Two other queries use different sets, which invites confusion: occupancy overlap uses `Staying = {Confirmed, CheckedIn, CheckedOut}` (line 62), and room overlap and assign use `{Confirmed, CheckedIn}` (lines 57 and 77). Do not reuse those for "arrivals".
+
+Consequence: a `Confirmed` booking whose `check_in` is in the past (never checked in, never marked `NoShow`) stays in the view under its old date. The named tool filters by date so it never shows, but `run_readonly_query` users will see these stale rows.
+
+## M3. Indexes serving each view
+
+Indexes after `V007`: `rooms`: PK, `ux_rooms_hotel_number (hotel_id, room_number)`, `ix_rooms_hotel_floor (hotel_id, floor, room_number)`, FK indexes; `room_status_history`: PK, `ix_room_status_history_room (room_id, changed_at)`; `bookings`: `ix_bookings_hotel_dates (hotel_id, check_in)`, `ix_bookings_room`, `ix_bookings_guest`, `ux_bookings_reference`; `housekeeper_floors`: PK `(hotel_id, floor)`, `ix_housekeeper_floors_user`; `hotels`, `room_types`, `users`: PK.
+
+| View | Access path (reasoned) | Gap |
+|---|---|---|
+| `vw_rooms_status` | With `hotel_id = ?`: `ref` on a `hotel_id` prefix of `ix_rooms_hotel_floor` (about 17 rooms per hotel); `hotels` and `room_types` by PK `eq_ref`. Unfiltered: scan of 104 rooms. | None needed at this size. |
+| `vw_sla_breaches` | Same. Status, `checked_out_at` and time tests are applied to fetched rows; no index on them. | None needed for 104 rooms. `rooms` has no index on `status`; irrelevant until rooms number in the thousands. |
+| `vw_ooo_impact` | Hotel-filtered, if pushdown into the window derived table works: `rooms` by `ix_rooms_hotel_floor`, then history by `ix_room_status_history_room` in partition order, no sort. If pushdown does not happen: full scan of `room_status_history` (about 124 seed rows, growing with every move) and a window pass over all of it. Cost is linear in history. | No index leads with `to_status` or `changed_at`, so "all OOO rows" cannot be found without a scan. |
+| `vw_housekeeper_load` | `housekeeper_floors` PK prefix, `users` PK, `rooms` grouped by `(hotel_id, floor)` (covered by `ix_rooms_hotel_floor`). **The `d` and `c` derived tables scan all of `room_status_history`**: `to_status = 'Ready'` has no usable index, and `DATE(changed_at)` is not sargable. | A `work_date = ?` filter does not reduce that scan. See V008 below. |
+| `vw_arrivals_vs_ready` | `bookings` via `ix_bookings_hotel_dates (hotel_id, check_in)` when the tool passes `hotel_id` and `arrival_date`, provided the optimiser pushes them into the grouped view (both are `GROUP BY` columns, so 8.0.22+ condition pushdown applies; reasoned). `status = 'Confirmed'` is checked per fetched row. `rooms` subquery: hotel prefix or scan, at most 104 rows. Without pushdown: full scan of `bookings` (about 50 seed rows, growing). | `status` is not in the index. One hotel and day is a handful of rows, so fine. |
+
+Optional index as a new migration (proposal, not applied; never edit `V001` to `V007`):
+
+```sql
+-- V008__mcp_view_support.sql (proposal)
+ALTER TABLE room_status_history
+  ADD KEY ix_rsh_to_status_changed (to_status, changed_at, changed_by_user_id, room_id);
+```
+
+It covers the `to_status = 'Ready'` scans in `vw_housekeeper_load` and lets the outer `to_status = 'OutOfOrder'` find its rows without reading the whole table; the window pass still needs every row of the affected rooms. Writes get one more index to maintain. At about 124 rows it is not justified; I am not recommending it now. Measure first.
+
+**All five views are plain views, not materialised.** Every call, from a named tool or `run_readonly_query`, re-executes the view body. Views with `GROUP BY`, `UNION`, window functions or derived tables (`vw_ooo_impact`, `vw_housekeeper_load`, `vw_arrivals_vs_ready`) are materialised into a temporary table per reference, so a query that references one twice builds it twice.
+
+## M4. Cost of `vw_rooms_status` joined to itself
+
+`SELECT ... FROM vw_rooms_status a JOIN vw_rooms_status b` with no join condition returns 104 x 104 = **10,816** rows. The 104 comes from the earlier analysis (section 2, 104 rooms in `V003`) and the FEATURE; I did not recount it here.
+
+Reasoned cost: the view is merged, so this is two copies of `rooms x hotels x room_types`. With 104 rows per side and PK lookups on the small tables, MySQL visits about 104 + 104 x 104 `rooms` rows and about 21,000 PK lookups. That is milliseconds of server work, far below the 10 s `max_execution_time`. The 10,000-row cap bites first (AC_19: 10,816 > 10,000, so 816 rows are cut).
+
+What those numbers do not show:
+1. **The row cap does not bound server work for buffered plans.** With `ORDER BY`, `GROUP BY`, `DISTINCT` or a window function, MySQL builds the whole result before sending a row, so "stop at 10,001 rows and `KILL QUERY`" saves transfer, not execution. For a plain nested-loop cross join, rows stream and an early stop does save work (reasoned; confirm with `EXPLAIN ANALYZE` or `Handler_read%` counters).
+2. **It scales as a power.** A three-way self-join is 104^3 = 1,124,864 rows, a four-way 104^4 = about 117 million. The four-way will not finish in 10 s and relies on `max_execution_time`. The row cap protects the client, the timeout protects the server; neither proves performance.
+3. **Heavier views multiply worse.** `vw_ooo_impact` or `vw_housekeeper_load` joined to themselves rematerialise per reference, and the housekeeper view scans `room_status_history` at least twice per reference.
+4. `MAX_USER_CONNECTIONS` (suggested 5) limits how many run at once. `max_execution_time` applies only to read-only `SELECT` statements; the FEATURE sets the session read only.
+5. `SLEEP()`: whether `max_execution_time` interrupts it with an error or lets it return early was not tested (the FEATURE's Risk 4 says the same). Needs real MySQL 8.4.
+
+## M5. Does `SQL SECURITY DEFINER` let a user with `SELECT` only on the views read them?
+
+**Reasoned from the MySQL 8.4 manual; not tested.**
+
+Yes, provided the definer still has the privileges. With `SQL SECURITY DEFINER` (the default, so what `CREATE OR REPLACE VIEW` gives unless told otherwise) the view body runs with the privileges of the `DEFINER` account, not the caller's. The caller needs `SELECT` on the view and nothing on the base tables. `SHOW VIEW` is not needed to read data. So `GRANT SELECT ON larchmont.vw_rooms_status TO mcp_readonly` and the same for the four others are sufficient. With `SQL SECURITY INVOKER` it would **not** work: `mcp_readonly` would need `SELECT` on `rooms`, `users` and the rest, defeating the purpose.
+
+Conditions and traps:
+1. **The definer must exist and keep `SELECT` on the base tables** (`rooms`, `hotels`, `room_types`, `room_status_history`, `bookings`, `housekeeper_floors`, `users`). If it is dropped or loses privileges, every read fails (error 1449, "The user specified as a definer does not exist", or an access error). Re-running the script as a different account silently changes the definer. Record who it is.
+2. **The default definer is whoever runs the script.** The FEATURE Verify step uses `root`, so the views would run as root, and anyone able to `ALTER VIEW` can change what they return. The views are the whole security boundary. Better: a dedicated definer (call it `mcp_owner`) with `SELECT` only on those seven tables, and `CREATE OR REPLACE DEFINER = mcp_owner SQL SECURITY DEFINER VIEW ...`. Do not use `larchmont_app` (it has `ALL` on the database, per the FEATURE). This is my recommendation, not part of the contract.
+3. **Leakage is controlled by column list only.** The definer can read `users`, so a view must never use `SELECT *`. The SQL above names every column. `vw_housekeeper_load` reads `users` but exposes only `display_name`.
+4. **Simple views can be updatable.** `vw_rooms_status` (a merged join view) is potentially updatable. `mcp_readonly` has no `INSERT`, `UPDATE` or `DELETE` on it, so those fail on privilege, which is what AC_03 wants. Do not grant them. Views with aggregation, `UNION` or window functions are not updatable at all.
+5. **AC_03 as written cannot pass.** It says `SELECT` on `information_schema.tables` must be denied. In MySQL every account can query `information_schema`; it returns only the objects the account has a privilege on. For `mcp_readonly` that would be the five views, not an error. The guard still rejects `information_schema`, and nothing sensitive is visible there, but the test should assert "returns no base tables", not "access denied". `larchmont.rooms` and `mysql.user` should give access denied (reasoned).
+6. `information_schema.views.view_definition` is shown only to accounts with `SHOW VIEW`, so the SQL text is not exposed to `mcp_readonly` (reasoned).
+
+## M6. Commands to turn the reasoning into measurements
+
+Run on a throwaway MySQL 8.4 (for example `compose.yaml`) after the API has applied `V001` to `V007` and the owner has created the views. These are `SELECT` and `EXPLAIN` only.
+
+```sql
+EXPLAIN FORMAT=TREE SELECT * FROM vw_rooms_status WHERE hotel_id = 1;
+EXPLAIN ANALYZE SELECT * FROM vw_sla_breaches WHERE hotel_id = 1;
+EXPLAIN ANALYZE SELECT * FROM vw_ooo_impact WHERE hotel_id = 1;            -- is hotel_id pushed into the window derived table?
+EXPLAIN ANALYZE SELECT * FROM vw_housekeeper_load WHERE hotel_id = 1;      -- note rows read from room_status_history
+EXPLAIN ANALYZE SELECT * FROM vw_arrivals_vs_ready WHERE hotel_id = 1 AND arrival_date = CURDATE();
+EXPLAIN ANALYZE SELECT COUNT(*) FROM vw_rooms_status a JOIN vw_rooms_status b;   -- expect 10,816
+SELECT COUNT(*) FROM rooms;                                                       -- confirm 104
+SELECT status, COUNT(*) FROM bookings GROUP BY status;                           -- confirm status strings in data
+SHOW GRANTS FOR mcp_readonly;
+-- as mcp_readonly:
+SELECT COUNT(*) FROM vw_rooms_status;        -- should work (DEFINER)
+SELECT COUNT(*) FROM rooms;                  -- should be denied
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'larchmont';  -- expect only the five views
+```
+
+Parity test for `minutes_over`: seed rooms due at 10:45:00 and compare the tool query and `vw_sla_breaches` with `GET /api/hotels/{id}/late-rooms` at 10:45:00, 10:45:01, 10:46:00 and 10:46:01. Expected: absent, 1, 1, 2.
+
+## M7. Summary of findings and decisions needed
+
+1. SQL for the five views is proposed above with the exact contract column names, no PII, no free text. **Unexecuted.**
+2. `minutes_over` is `(TIMESTAMPDIFF(SECOND, due, end) + 59) DIV 60` for `secs > 0`, equal to `Turnaround.MinutesOver` on the boundary cases (worked by hand).
+3. **FEATURE gap:** `vw_sla_breaches` is fixed to `UTC_TIMESTAMP()`, so `rooms_breaching_sla` with `asOf` (AC_05) must query `vw_rooms_status` with a parameter (query in M1.2).
+4. **Hidden rules:** the API lists Ready-late rooms only from the last 24 hours and includes `OutOfOrder` rooms that have a checkout time. The view copies both. Confirm both are wanted.
+5. Arrival = `status = 'Confirmed'` and `check_in = date`, exactly like `ListArrivalsAsync`. Stale past `Confirmed` bookings remain in the view.
+6. `ooo_to IS NULL` covers "still OOO" and "no closing row"; all six seeded OOO rooms are open intervals. A room with `status = 'OutOfOrder'` and no history row is invisible (check query in M1.3).
+7. Open questions that change view output: Q5 (night definition, inclusive ends), Q6 (meaning of assigned and completed; self-marks; Inspected), Q7 (subtract held rooms; dates other than today).
+8. The self-join of `vw_rooms_status` is cheap (10,816 rows). The risk is the power law and buffered plans, not that case. The 10 s timeout is the real bound.
+9. DEFINER views let a view-only user read them if the definer persists with base-table `SELECT`. Use a dedicated definer, not `root` or `larchmont_app`. AC_03 `information_schema` clause cannot pass as worded.
+10. Optional V008 index on `room_status_history (to_status, changed_at, changed_by_user_id, room_id)`; not justified at about 124 rows; measure first.

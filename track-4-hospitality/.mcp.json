@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "larchmont": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["mcp/dist/index.js"],
+      "env": {
+        "MCP_DB_HOST": "${MCP_DB_HOST:-127.0.0.1}",
+        "MCP_DB_PORT": "${MCP_DB_PORT:-3306}",
+        "MCP_DB_NAME": "${MCP_DB_NAME:-larchmont}",
+        "MCP_DB_USER": "${MCP_DB_USER:-mcp_readonly}",
+        "MCP_DB_PASSWORD": "${MCP_DB_PASSWORD}"
+      }
+    }
+  }
+}

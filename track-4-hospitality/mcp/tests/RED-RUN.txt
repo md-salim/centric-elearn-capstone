@@ -1,0 +1,1975 @@
+RED RUN against the unimplemented skeleton (cd mcp && npm test, date 2026-10-27)
+Result: 117 failed | 50 passed (167 tests; 2 files; tests/mysql excluded by npm test).
+
+Why they fail (all for the intended reason):
+- guard.test.ts AC_12..AC_17 (68 tests): "expected rejection but got ok for: <sql>" -> the stub validateSql returns {ok:true}.
+- server.test.ts AC_11, AC_19 passthrough, AC_20 (accepted/failed/rejected entries, sql, password, audit refused):
+  handlers throw 'not implemented', so no audit entry is written ("expected [] to have a length of 1"), results are not the
+  documented shape, or the plain message is missing ("expected 'not implemented' to contain 'Only a single SELECT ...'").
+- server.test.ts AC_10 calendar-invalid date cases and the 14 AC_12 mock cases: fail on the controls "text is not 'not implemented'"
+  and "audit entries == ['rejected']" -> the handler crashes instead of deliberately rejecting.
+- server.test.ts AC_21: control "a valid query must succeed" / "failing call audited as error" fails.
+- server.test.ts AC_22 (7 of 7): loadConfig throws 'not implemented' instead of a clear MCP_DB_PASSWORD message / defaults.
+
+Tests GREEN on the stub, and why that is legitimate (not vacuous):
+- 14 guard 'Accepts_*' positive cases: the stub accepts everything; they stop a future blanket-reject guard.
+- 7 AC_04 tests: the skeleton already registers five tools in order with descriptions that state input and output.
+- 20 AC_10_BadHotelId_* tests, 7 AC_10_MalformedDate_* tests (strings that are not YYYY-MM-DD or not an ISO datetime) and
+  AC_10_ErrorMessageIsPlain: the zod schemas in the skeleton already reject these in the SDK, before any handler or database call.
+  They are regression guards. Calendar-invalid dates (2026-02-30, 2026-13-01, 2026-99-99) pass the regex and are RED until handlers validate.
+- AC_19_LimitConstants: LIMITS already equals 10000 / 10000.
+
+tests/mysql/* (57 tests): WRITTEN, NOT RUN. No MySQL here (docker is not installed; no credentials guessed, port 3306 not probed).
+Without MCP_TEST_MYSQL_ADMIN_URL and MCP_DB_PASSWORD they report as skipped, so they have not been seen red or green.
+
+----- raw output of npm test follows -----
+
+
+> larchmont-mcp@0.1.0 test
+> vitest run --exclude tests/mysql/**
+
+
+ RUN  v5.0.5 C:/Users/labuser/capstone-repo/centric-elearn-capstone/track-4-hospitality/mcp
+
+ ❯ tests/guard.test.ts (82 tests | 68 failed) 107ms
+   ❯ guard: AC_12 non-SELECT statements (12)
+     × AC_12_Rejects_INSERT 21ms
+     × AC_12_Rejects_UPDATE 2ms
+     × AC_12_Rejects_DELETE 2ms
+     × AC_12_Rejects_DROP 1ms
+     × AC_12_Rejects_ALTER 2ms
+     × AC_12_Rejects_TRUNCATE 1ms
+     × AC_12_Rejects_CREATE 1ms
+     × AC_12_Rejects_GRANT 1ms
+     × AC_12_Rejects_CALL 1ms
+     × AC_12_Rejects_SET 1ms
+     × AC_12_Rejects_SHOW 1ms
+     × AC_12_Rejects_EXPLAIN 1ms
+   ❯ guard: AC_13 multiple statements (4)
+     × AC_13_Rejects_MultiStatement_two selects 1ms
+     × AC_13_Rejects_MultiStatement_trailing drop 1ms
+     × AC_13_Rejects_MultiStatement_trailing drop with semicolon 1ms
+     × AC_13_Rejects_MultiStatement_trailing delete without space 1ms
+   ❯ guard: AC_14 comments (12)
+     × AC_14_Rejects_Comment_executable comment 1ms
+     × AC_14_Rejects_Comment_MariaDB executable comment 1ms
+     × AC_14_Rejects_Comment_block comment 1ms
+     × AC_14_Rejects_Comment_dash dash comment 1ms
+     × AC_14_Rejects_Comment_dash dash comment mid-query 1ms
+     × AC_14_Rejects_Comment_hash comment 1ms
+     × AC_14_Rejects_Comment_comment hiding DROP 1ms
+     × AC_14_Rejects_Comment_executable comment hiding DROP 1ms
+     × AC_14_Rejects_Comment_executable comment hiding a second statement 1ms
+     × AC_14_Rejects_Comment_executable comment hiding a table name 1ms
+     × AC_14_Rejects_Comment_MariaDB comment hiding a table 1ms
+     × AC_14_Rejects_Comment_hash hiding a drop 1ms
+   ❯ guard: AC_15 INTO, USE, locking, no FROM (11)
+     × AC_15_Rejects_USE larchmont 1ms
+     × AC_15_Rejects_USE mysql 1ms
+     × AC_15_Rejects_INTO OUTFILE 1ms
+     × AC_15_Rejects_INTO DUMPFILE 1ms
+     × AC_15_Rejects_INTO @var 5ms
+     × AC_15_Rejects_INTO @var at the end 1ms
+     × AC_15_Rejects_FOR UPDATE 1ms
+     × AC_15_Rejects_LOCK IN SHARE MODE 1ms
+     × AC_15_Rejects_SELECT without FROM 1ms
+     × AC_15_Rejects_SLEEP without FROM 1ms
+     × AC_15_Rejects_function without FROM 1ms
+   ❯ guard: AC_16 tables other than the five views (22)
+     × AC_16_Rejects_plain table 1ms
+     × AC_16_Rejects_users table 1ms
+     × AC_16_Rejects_guests table 1ms
+     × AC_16_Rejects_join to a table 1ms
+     × AC_16_Rejects_comma join to a table 1ms
+     × AC_16_Rejects_left join to a table 1ms
+     × AC_16_Rejects_subquery in FROM 1ms
+     × AC_16_Rejects_subquery in WHERE 1ms
+     × AC_16_Rejects_subquery in select list 1ms
+     × AC_16_Rejects_CTE 1ms
+     × AC_16_Rejects_CTE on a table, outer query on a view 1ms
+     × AC_16_Rejects_UNION with a table 1ms
+     × AC_16_Rejects_UNION ALL with a table 1ms
+     × AC_16_Rejects_backticked table 1ms
+     × AC_16_Rejects_upper-case table 1ms
+     × AC_16_Rejects_backticked qualified table 1ms
+     × AC_16_Rejects_schema-qualified larchmont.rooms 1ms
+     × AC_16_Rejects_information_schema.tables 1ms
+     × AC_16_Rejects_mysql.user 1ms
+     × AC_16_Rejects_view name in another schema 1ms
+     × AC_16_Rejects_view lookalike suffix 1ms
+     × AC_16_Rejects_view lookalike prefix 1ms
+   ❯ guard: AC_17 unparseable SQL fails closed (7)
+     × AC_17_Rejects_Unparseable_gibberish 1ms
+     × AC_17_Rejects_Unparseable_truncated 1ms
+     × AC_17_Rejects_Unparseable_unbalanced bracket 1ms
+     × AC_17_Rejects_Unparseable_unterminated string 1ms
+     × AC_17_Rejects_Unparseable_empty string 2ms
+     × AC_17_Rejects_Unparseable_whitespace only 1ms
+     × AC_17_Rejects_Unparseable_stray punctuation 1ms
+ ❯ tests/server.test.ts (85 tests | 49 failed) 457ms
+   ❯ AC_10 bad input never reaches the database (34)
+     × AC_10_MalformedDate_housekeeper_load_date_2026-02-30_IsAnErrorAndDbUntouched 18ms
+     × AC_10_MalformedDate_housekeeper_load_date_2026-13-01_IsAnErrorAndDbUntouched 9ms
+     × AC_10_MalformedDate_arrivals_without_ready_room_date_2026-02-30_IsAnErrorAndDbUntouched 4ms
+     × AC_10_MalformedDate_ooo_impact_on_occupancy_from_2026-99-99_IsAnErrorAndDbUntouched 4ms
+     × AC_10_MalformedDate_ooo_impact_on_occupancy_to_2026-02-30_IsAnErrorAndDbUntouched 3ms
+     × AC_10_RangeEndingBeforeStart_IsAnErrorAndDbUntouched 3ms
+   ❯ AC_11 run_readonly_query result shape (mock db) (3)
+     × AC_11_ReturnsColumnsRowsRowCountTruncatedDuration 5ms
+     × AC_11_TextContentAndStructuredContentAgree 4ms
+     × AC_11_PassesTheSqlToTheDbOnce 3ms
+   ❯ AC_12 rejected statements never contact the database (mock db) (15)
+     × AC_12_RejectedAndDbNotCalled_INSERT INTO rooms (room_number) VALUES ('1') 4ms
+     × AC_12_RejectedAndDbNotCalled_UPDATE rooms SET status = 'Ready' 4ms
+     × AC_12_RejectedAndDbNotCalled_DELETE FROM rooms 3ms
+     × AC_12_RejectedAndDbNotCalled_DROP TABLE rooms 3ms
+     × AC_12_RejectedAndDbNotCalled_ALTER TABLE rooms ADD COLUMN x INT 3ms
+     × AC_12_RejectedAndDbNotCalled_TRUNCATE TABLE rooms 3ms
+     × AC_12_RejectedAndDbNotCalled_CREATE TABLE t (id INT) 3ms
+     × AC_12_RejectedAndDbNotCalled_GRANT ALL ON *.* TO 'x'@'%' 5ms
+     × AC_12_RejectedAndDbNotCalled_CALL do_something() 5ms
+     × AC_12_RejectedAndDbNotCalled_SET @a = 1 5ms
+     × AC_12_RejectedAndDbNotCalled_SHOW TABLES 4ms
+     × AC_12_RejectedAndDbNotCalled_EXPLAIN SELECT * FROM vw_rooms_status 5ms
+     × AC_12_RejectedAndDbNotCalled_SELECT 1 FROM vw_rooms_status; DROP TABLE rooms 4ms
+     × AC_12_RejectedAndDbNotCalled_SELECT * FROM rooms 4ms
+     × AC_12_RejectionMessageIsTheStatedPlainMessage 11ms
+   ❯ AC_19 truncation passthrough (mock db) (2)
+     × AC_19_TruncatedFlagAndRowCountAreReported 7ms
+   ❯ AC_20 audit (mock db, in-memory audit) (16)
+     × AC_20_AcceptedCallWritesExactlyOneEntry_rooms_breaching_sla 5ms
+     × AC_20_AcceptedCallWritesExactlyOneEntry_ooo_impact_on_occupancy 3ms
+     × AC_20_AcceptedCallWritesExactlyOneEntry_housekeeper_load 4ms
+     × AC_20_AcceptedCallWritesExactlyOneEntry_arrivals_without_ready_room 13ms
+     × AC_20_AcceptedCallWritesExactlyOneEntry_run_readonly_query 4ms
+     × AC_20_FailedDbCallWritesExactlyOneErrorEntry_rooms_breaching_sla 5ms
+     × AC_20_FailedDbCallWritesExactlyOneErrorEntry_ooo_impact_on_occupancy 4ms
+     × AC_20_FailedDbCallWritesExactlyOneErrorEntry_housekeeper_load 3ms
+     × AC_20_FailedDbCallWritesExactlyOneErrorEntry_arrivals_without_ready_room 3ms
+     × AC_20_FailedDbCallWritesExactlyOneErrorEntry_run_readonly_query 3ms
+     × AC_20_SuccessfulQueryEntryIsOkWithRowCountAndSql 4ms
+     × AC_20_RejectedQueryWritesOneRejectedEntryWithTheSql 4ms
+     × AC_20_EntryIsJsonSerialisable 5ms
+     × AC_20_NoEntryContainsThePassword 6ms
+     × AC_20_WhenAuditCannotBeWrittenTheCallIsRefused 4ms
+     × AC_20_WhenAuditCannotBeWrittenTheDbIsNotCalled 4ms
+   ❯ AC_21 stdout carries protocol only (2)
+     × AC_21_NothingIsWrittenToStdoutDuringToolCalls 9ms
+     × AC_21_NothingIsWrittenToStdoutWhenTheDbFails 9ms
+   ❯ AC_22 configuration (start-up seam: loadConfig) (6)
+     × AC_22_MissingPasswordThrowsAClearMessage 3ms
+     × AC_22_EmptyPasswordThrowsAClearMessage 1ms
+     × AC_22_ErrorMessageDoesNotEchoAPassword 1ms
+     × AC_22_DefaultsAreApplied 1ms
+     × AC_22_OverridesAreRead 1ms
+     × AC_22_NonNumericPortThrowsAClearMessage 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 117 ⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_INSERT
+AssertionError: expected rejection but got ok for: INSERT INTO rooms (room_number) VALUES ('1'): expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_UPDATE
+AssertionError: expected rejection but got ok for: UPDATE rooms SET status = 'Ready': expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_DELETE
+AssertionError: expected rejection but got ok for: DELETE FROM rooms: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_DROP
+AssertionError: expected rejection but got ok for: DROP TABLE rooms: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_ALTER
+AssertionError: expected rejection but got ok for: ALTER TABLE rooms ADD COLUMN x INT: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_TRUNCATE
+AssertionError: expected rejection but got ok for: TRUNCATE TABLE rooms: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_CREATE
+AssertionError: expected rejection but got ok for: CREATE TABLE t (id INT): expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_GRANT
+AssertionError: expected rejection but got ok for: GRANT ALL ON *.* TO 'x'@'%': expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_CALL
+AssertionError: expected rejection but got ok for: CALL do_something(): expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_SET
+AssertionError: expected rejection but got ok for: SET @a = 1: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_SHOW
+AssertionError: expected rejection but got ok for: SHOW TABLES: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_12 non-SELECT statements > AC_12_Rejects_EXPLAIN
+AssertionError: expected rejection but got ok for: EXPLAIN SELECT * FROM vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:44:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_13 multiple statements > AC_13_Rejects_MultiStatement_two selects
+AssertionError: expected rejection but got ok for: SELECT 1 FROM vw_rooms_status; SELECT 2 FROM vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:55:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_13 multiple statements > AC_13_Rejects_MultiStatement_trailing drop
+AssertionError: expected rejection but got ok for: SELECT 1 FROM vw_rooms_status; DROP TABLE rooms: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:55:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_13 multiple statements > AC_13_Rejects_MultiStatement_trailing drop with semicolon
+AssertionError: expected rejection but got ok for: SELECT 1 FROM vw_rooms_status; DROP TABLE rooms;: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:55:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_13 multiple statements > AC_13_Rejects_MultiStatement_trailing delete without space
+AssertionError: expected rejection but got ok for: SELECT 1 FROM vw_rooms_status;DELETE FROM rooms: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:55:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_executable comment
+AssertionError: expected rejection but got ok for: SELECT /*! 1 */ room_number FROM vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_MariaDB executable comment
+AssertionError: expected rejection but got ok for: SELECT /*M! 1 */ room_number FROM vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_block comment
+AssertionError: expected rejection but got ok for: SELECT room_number /* hello */ FROM vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_dash dash comment
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status -- trailing: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_dash dash comment mid-query
+AssertionError: expected rejection but got ok for: SELECT room_number -- x
+FROM vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_hash comment
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status # trailing: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_comment hiding DROP
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status /* ; DROP TABLE rooms */: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_executable comment hiding DROP
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status /*! ; DROP TABLE rooms */: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_executable comment hiding a second statement
+AssertionError: expected rejection but got ok for: SELECT 1 FROM vw_rooms_status /*!; SELECT 2 FROM vw_rooms_status */: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_executable comment hiding a table name
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status /*! , rooms */: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_MariaDB comment hiding a table
+AssertionError: expected rejection but got ok for: SELECT * FROM vw_rooms_status /*M! JOIN rooms ON 1=1 */: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_14 comments > AC_14_Rejects_Comment_hash hiding a drop
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status #; DROP TABLE rooms: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:77:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_USE larchmont
+AssertionError: expected rejection but got ok for: USE larchmont: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_USE mysql
+AssertionError: expected rejection but got ok for: USE mysql: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_INTO OUTFILE
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status INTO OUTFILE '/tmp/x': expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_INTO DUMPFILE
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status INTO DUMPFILE '/tmp/x': expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_INTO @var
+AssertionError: expected rejection but got ok for: SELECT room_number INTO @v FROM vw_rooms_status LIMIT 1: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_INTO @var at the end
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status LIMIT 1 INTO @v: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_FOR UPDATE
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status FOR UPDATE: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_LOCK IN SHARE MODE
+AssertionError: expected rejection but got ok for: SELECT room_number FROM vw_rooms_status LOCK IN SHARE MODE: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_SELECT without FROM
+AssertionError: expected rejection but got ok for: SELECT 1: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_SLEEP without FROM
+AssertionError: expected rejection but got ok for: SELECT SLEEP(15): expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_15 INTO, USE, locking, no FROM > AC_15_Rejects_function without FROM
+AssertionError: expected rejection but got ok for: SELECT USER(): expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:95:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_plain table
+AssertionError: expected rejection but got ok for: SELECT * FROM rooms: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_users table
+AssertionError: expected rejection but got ok for: SELECT email FROM users: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_guests table
+AssertionError: expected rejection but got ok for: SELECT * FROM guests: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_join to a table
+AssertionError: expected rejection but got ok for: SELECT * FROM vw_rooms_status v JOIN rooms r ON r.id = v.room_id: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_comma join to a table
+AssertionError: expected rejection but got ok for: SELECT * FROM vw_rooms_status v, rooms r: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_left join to a table
+AssertionError: expected rejection but got ok for: SELECT * FROM vw_rooms_status v LEFT JOIN guests g ON 1 = 1: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_subquery in FROM
+AssertionError: expected rejection but got ok for: SELECT * FROM (SELECT * FROM rooms) t: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_subquery in WHERE
+AssertionError: expected rejection but got ok for: SELECT * FROM vw_rooms_status WHERE room_id IN (SELECT id FROM rooms): expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_subquery in select list
+AssertionError: expected rejection but got ok for: SELECT (SELECT COUNT(*) FROM guests) AS c FROM vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[48/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_CTE
+AssertionError: expected rejection but got ok for: WITH r AS (SELECT * FROM rooms) SELECT * FROM r: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[49/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_CTE on a table, outer query on a view
+AssertionError: expected rejection but got ok for: WITH r AS (SELECT * FROM users) SELECT * FROM vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[50/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_UNION with a table
+AssertionError: expected rejection but got ok for: SELECT room_id FROM vw_rooms_status UNION SELECT id FROM rooms: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[51/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_UNION ALL with a table
+AssertionError: expected rejection but got ok for: SELECT room_id FROM vw_rooms_status UNION ALL SELECT id FROM users: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[52/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_backticked table
+AssertionError: expected rejection but got ok for: SELECT * FROM `rooms`: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[53/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_upper-case table
+AssertionError: expected rejection but got ok for: SELECT * FROM ROOMS: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[54/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_backticked qualified table
+AssertionError: expected rejection but got ok for: SELECT * FROM `larchmont`.`rooms`: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[55/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_schema-qualified larchmont.rooms
+AssertionError: expected rejection but got ok for: SELECT * FROM larchmont.rooms: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[56/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_information_schema.tables
+AssertionError: expected rejection but got ok for: SELECT * FROM information_schema.tables: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[57/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_mysql.user
+AssertionError: expected rejection but got ok for: SELECT * FROM mysql.user: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[58/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_view name in another schema
+AssertionError: expected rejection but got ok for: SELECT * FROM mysql.vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[59/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_view lookalike suffix
+AssertionError: expected rejection but got ok for: SELECT * FROM vw_rooms_status_backup: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[60/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_16 tables other than the five views > AC_16_Rejects_view lookalike prefix
+AssertionError: expected rejection but got ok for: SELECT * FROM vw_rooms: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:124:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[61/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_17 unparseable SQL fails closed > AC_17_Rejects_Unparseable_gibberish
+AssertionError: expected rejection but got ok for: this is not sql: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:138:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[62/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_17 unparseable SQL fails closed > AC_17_Rejects_Unparseable_truncated
+AssertionError: expected rejection but got ok for: SELECT * FROM: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:138:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[63/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_17 unparseable SQL fails closed > AC_17_Rejects_Unparseable_unbalanced bracket
+AssertionError: expected rejection but got ok for: SELECT (1 FROM vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:138:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[64/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_17 unparseable SQL fails closed > AC_17_Rejects_Unparseable_unterminated string
+AssertionError: expected rejection but got ok for: SELECT * FROM vw_rooms_status WHERE room_number = 'abc: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:138:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[65/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_17 unparseable SQL fails closed > AC_17_Rejects_Unparseable_empty string
+AssertionError: expected rejection but got ok for: : expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:138:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[66/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_17 unparseable SQL fails closed > AC_17_Rejects_Unparseable_whitespace only
+AssertionError: expected rejection but got ok for:    : expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:138:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[67/117]⎯
+
+ FAIL  tests/guard.test.ts > guard: AC_17 unparseable SQL fails closed > AC_17_Rejects_Unparseable_stray punctuation
+AssertionError: expected rejection but got ok for: SELECT ))) FROM vw_rooms_status: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ expectRejected tests/guard.test.ts:9:61
+      7| function expectRejected(sql: string): void {
+      8|   const r = validateSql(sql);
+      9|   expect(r.ok, `expected rejection but got ok for: ${sql}`).toBe(false…
+       |                                                             ^
+     10|   if (!r.ok) {
+     11|     expect(typeof r.reason).toBe('string');
+ ❯ tests/guard.test.ts:138:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[68/117]⎯
+
+ FAIL  tests/server.test.ts > AC_10 bad input never reaches the database > AC_10_MalformedDate_housekeeper_load_date_2026-02-30_IsAnErrorAndDbUntouched
+ FAIL  tests/server.test.ts > AC_10 bad input never reaches the database > AC_10_MalformedDate_housekeeper_load_date_2026-13-01_IsAnErrorAndDbUntouched
+ FAIL  tests/server.test.ts > AC_10 bad input never reaches the database > AC_10_MalformedDate_arrivals_without_ready_room_date_2026-02-30_IsAnErrorAndDbUntouched
+ FAIL  tests/server.test.ts > AC_10 bad input never reaches the database > AC_10_MalformedDate_ooo_impact_on_occupancy_from_2026-99-99_IsAnErrorAndDbUntouched
+ FAIL  tests/server.test.ts > AC_10 bad input never reaches the database > AC_10_MalformedDate_ooo_impact_on_occupancy_to_2026-02-30_IsAnErrorAndDbUntouched
+AssertionError: expected 'not implemented' not to match /not implemented/i
+
+- Expected:
+/not implemented/i
+
++ Received:
+"not implemented"
+
+ ❯ tests/server.test.ts:175:24
+    173|     expect(r.isError).toBe(true);
+    174|     // a deliberate rejection, not a crash of an unimplemented handler
+    175|     expect(r.text).not.toMatch(/not implemented/i);
+       |                        ^
+    176|     expect(h.query).not.toHaveBeenCalled();
+    177|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[69/117]⎯
+
+ FAIL  tests/server.test.ts > AC_10 bad input never reaches the database > AC_10_RangeEndingBeforeStart_IsAnErrorAndDbUntouched
+AssertionError: expected 'not implemented' not to match /not implemented/i
+
+- Expected:
+/not implemented/i
+
++ Received:
+"not implemented"
+
+ ❯ tests/server.test.ts:182:24
+    180|     const r = await call(h, 'ooo_impact_on_occupancy', { hotelId: 1, f…
+    181|     expect(r.isError).toBe(true);
+    182|     expect(r.text).not.toMatch(/not implemented/i);
+       |                        ^
+    183|     expect(h.query).not.toHaveBeenCalled();
+    184|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[70/117]⎯
+
+ FAIL  tests/server.test.ts > AC_11 run_readonly_query result shape (mock db) > AC_11_ReturnsColumnsRowsRowCountTruncatedDuration
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/server.test.ts:200:23
+    198|     });
+    199|     const r = await call(h, 'run_readonly_query', VALID_ARGS.run_reado…
+    200|     expect(r.isError).toBe(false);
+       |                       ^
+    201|     const p = payload(r);
+    202|     expect(p.columns).toEqual(['room_number', 'status']);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[71/117]⎯
+
+ FAIL  tests/server.test.ts > AC_11 run_readonly_query result shape (mock db) > AC_11_TextContentAndStructuredContentAgree
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/server.test.ts:213:23
+    211|     h = await start({ result: { columns: ['a'], rows: [[1]], truncated…
+    212|     const r = await call(h, 'run_readonly_query', VALID_ARGS.run_reado…
+    213|     expect(r.isError).toBe(false);
+       |                       ^
+    214|     expect(r.structured).toBeDefined();
+    215|     expect(JSON.parse(r.text)).toEqual(r.structured);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[72/117]⎯
+
+ FAIL  tests/server.test.ts > AC_11 run_readonly_query result shape (mock db) > AC_11_PassesTheSqlToTheDbOnce
+AssertionError: expected "vi.fn()" to be called 1 times, but got 0 times
+ ❯ tests/server.test.ts:221:21
+    219|     h = await start({ result: { columns: ['a'], rows: [[1]], truncated…
+    220|     await call(h, 'run_readonly_query', VALID_ARGS.run_readonly_query);
+    221|     expect(h.query).toHaveBeenCalledTimes(1);
+       |                     ^
+    222|     expect(h.query.mock.calls[0][0]).toBe(VALID_ARGS.run_readonly_quer…
+    223|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[73/117]⎯
+
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_INSERT INTO rooms (room_number) VALUES ('1')
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_UPDATE rooms SET status = 'Ready'
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_DELETE FROM rooms
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_DROP TABLE rooms
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_ALTER TABLE rooms ADD COLUMN x INT
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_TRUNCATE TABLE rooms
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_CREATE TABLE t (id INT)
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_GRANT ALL ON *.* TO 'x'@'%'
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_CALL do_something()
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_SET @a = 1
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_SHOW TABLES
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_EXPLAIN SELECT * FROM vw_rooms_status
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_SELECT 1 FROM vw_rooms_status; DROP TABLE rooms
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectedAndDbNotCalled_SELECT * FROM rooms
+AssertionError: expected 'not implemented' not to match /not implemented/i
+
+- Expected:
+/not implemented/i
+
++ Received:
+"not implemented"
+
+ ❯ tests/server.test.ts:250:24
+    248|     expect(r.isError).toBe(true);
+    249|     // a deliberate guard rejection (audited as rejected), not a crash…
+    250|     expect(r.text).not.toMatch(/not implemented/i);
+       |                        ^
+    251|     expect(h.entries.map((e) => e.outcome)).toEqual(['rejected']);
+    252|     expect(h.query).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[74/117]⎯
+
+ FAIL  tests/server.test.ts > AC_12 rejected statements never contact the database (mock db) > AC_12_RejectionMessageIsTheStatedPlainMessage
+AssertionError: expected 'not implemented' to contain 'Only a single SELECT on the vw_ views…'
+
+Expected: "Only a single SELECT on the vw_ views is allowed"
+Received: "not implemented"
+
+ ❯ tests/server.test.ts:258:20
+    256|   it('AC_12_RejectionMessageIsTheStatedPlainMessage', async () => {
+    257|     const r = await call(h, 'run_readonly_query', { sql: 'DROP TABLE r…
+    258|     expect(r.text).toContain('Only a single SELECT on the vw_ views is…
+       |                    ^
+    259|   });
+    260| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[75/117]⎯
+
+ FAIL  tests/server.test.ts > AC_19 truncation passthrough (mock db) > AC_19_TruncatedFlagAndRowCountAreReported
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/server.test.ts:269:23
+    267|       sql: 'SELECT a.room_id FROM vw_rooms_status a JOIN vw_rooms_stat…
+    268|     });
+    269|     expect(r.isError).toBe(false);
+       |                       ^
+    270|     const p = payload(r);
+    271|     expect(p.truncated).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[76/117]⎯
+
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_AcceptedCallWritesExactlyOneEntry_rooms_breaching_sla
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_AcceptedCallWritesExactlyOneEntry_ooo_impact_on_occupancy
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_AcceptedCallWritesExactlyOneEntry_housekeeper_load
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_AcceptedCallWritesExactlyOneEntry_arrivals_without_ready_room
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_AcceptedCallWritesExactlyOneEntry_run_readonly_query
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/server.test.ts:286:23
+    284|     h = await start({ result: { columns: ['a'], rows: [[1]], truncated…
+    285|     await call(h, tool, VALID_ARGS[tool]);
+    286|     expect(h.entries).toHaveLength(1);
+       |                       ^
+    287|     const e = h.entries[0];
+    288|     expect(e.tool).toBe(tool);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[77/117]⎯
+
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_FailedDbCallWritesExactlyOneErrorEntry_rooms_breaching_sla
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_FailedDbCallWritesExactlyOneErrorEntry_ooo_impact_on_occupancy
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_FailedDbCallWritesExactlyOneErrorEntry_housekeeper_load
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_FailedDbCallWritesExactlyOneErrorEntry_arrivals_without_ready_room
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_FailedDbCallWritesExactlyOneErrorEntry_run_readonly_query
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/server.test.ts:303:23
+    301|     const r = await call(h, tool, VALID_ARGS[tool]);
+    302|     expect(r.isError).toBe(true);
+    303|     expect(h.entries).toHaveLength(1);
+       |                       ^
+    304|     expect(h.entries[0].tool).toBe(tool);
+    305|     expect(h.entries[0].outcome).toBe('error');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[78/117]⎯
+
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_SuccessfulQueryEntryIsOkWithRowCountAndSql
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/server.test.ts:311:23
+    309|     h = await start({ result: { columns: ['a'], rows: [[1], [2], [3]],…
+    310|     await call(h, 'run_readonly_query', VALID_ARGS.run_readonly_query);
+    311|     expect(h.entries).toHaveLength(1);
+       |                       ^
+    312|     expect(h.entries[0].outcome).toBe('ok');
+    313|     expect(h.entries[0].rowCount).toBe(3);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[79/117]⎯
+
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_RejectedQueryWritesOneRejectedEntryWithTheSql
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/server.test.ts:320:23
+    318|     h = await start();
+    319|     await call(h, 'run_readonly_query', { sql: 'DROP TABLE rooms' });
+    320|     expect(h.entries).toHaveLength(1);
+       |                       ^
+    321|     expect(h.entries[0].tool).toBe('run_readonly_query');
+    322|     expect(h.entries[0].outcome).toBe('rejected');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[80/117]⎯
+
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_EntryIsJsonSerialisable
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ tests/server.test.ts:329:23
+    327|     h = await start({ result: { columns: ['a'], rows: [[1]], truncated…
+    328|     await call(h, 'run_readonly_query', VALID_ARGS.run_readonly_query);
+    329|     expect(h.entries).toHaveLength(1);
+       |                       ^
+    330|     expect(() => JSON.parse(JSON.stringify(h.entries[0]))).not.toThrow…
+    331|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[81/117]⎯
+
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_NoEntryContainsThePassword
+AssertionError: expected 0 to be greater than or equal to 5
+ ❯ tests/server.test.ts:343:32
+    341|       for (const tool of TOOL_ORDER) await call(h, tool, VALID_ARGS[to…
+    342|       await call(h, 'run_readonly_query', { sql: 'DROP TABLE rooms' });
+    343|       expect(h.entries.length).toBeGreaterThanOrEqual(5);
+       |                                ^
+    344|       expect(JSON.stringify(h.entries)).not.toContain(SECRET);
+    345|     } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[82/117]⎯
+
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_WhenAuditCannotBeWrittenTheCallIsRefused
+AssertionError: expected "vi.fn()" to be called at least once
+ ❯ tests/server.test.ts:355:26
+    353|     const r = await call(h, 'run_readonly_query', VALID_ARGS.run_reado…
+    354|     expect(r.isError).toBe(true);
+    355|     expect(audit.record).toHaveBeenCalled();
+       |                          ^
+    356|     expect(r.text).not.toMatch(/not implemented/i);
+    357|     expect(r.text).not.toContain('"rowCount"');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[83/117]⎯
+
+ FAIL  tests/server.test.ts > AC_20 audit (mock db, in-memory audit) > AC_20_WhenAuditCannotBeWrittenTheDbIsNotCalled
+AssertionError: expected "vi.fn()" to be called at least once
+ ❯ tests/server.test.ts:366:26
+    364|     h = await start({ audit, result: { columns: ['a'], rows: [[1]], tr…
+    365|     await call(h, 'run_readonly_query', VALID_ARGS.run_readonly_query);
+    366|     expect(audit.record).toHaveBeenCalled();
+       |                          ^
+    367|     expect(h.query).not.toHaveBeenCalled();
+    368|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[84/117]⎯
+
+ FAIL  tests/server.test.ts > AC_21 stdout carries protocol only > AC_21_NothingIsWrittenToStdoutDuringToolCalls
+AssertionError: control: a valid query must succeed so the calls above really ran: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ tests/server.test.ts:382:93
+    380|     const writes = spy.mock.calls.map((c) => String(c[0]));
+    381|     spy.mockRestore();
+    382|     expect(ok.isError, 'control: a valid query must succeed so the cal…
+       |                                                                                             ^
+    383|     expect(writes).toEqual([]);
+    384|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[85/117]⎯
+
+ FAIL  tests/server.test.ts > AC_21 stdout carries protocol only > AC_21_NothingIsWrittenToStdoutWhenTheDbFails
+AssertionError: control: the failing call was handled and audited: expected [] to deeply equal [ 'error' ]
+
+- Expected
++ Received
+
+- [
+-   "error",
+- ]
++ []
+
+ ❯ tests/server.test.ts:396:98
+    394|     const writes = spy.mock.calls.map((c) => String(c[0]));
+    395|     spy.mockRestore();
+    396|     expect(h.entries.map((e) => e.outcome), 'control: the failing call…
+       |                                                                                                  ^
+    397|     expect(writes).toEqual([]);
+    398|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[86/117]⎯
+
+ FAIL  tests/server.test.ts > AC_22 configuration (start-up seam: loadConfig) > AC_22_MissingPasswordThrowsAClearMessage
+AssertionError: expected [Function] to throw error matching /MCP_DB_PASSWORD/ but got 'not implemented'
+
+- Expected:
+/MCP_DB_PASSWORD/
+
++ Received:
+"not implemented"
+
+ ❯ tests/server.test.ts:405:34
+    403|
+    404|   it('AC_22_MissingPasswordThrowsAClearMessage', () => {
+    405|     expect(() => loadConfig({})).toThrow(/MCP_DB_PASSWORD/);
+       |                                  ^
+    406|   });
+    407|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[87/117]⎯
+
+ FAIL  tests/server.test.ts > AC_22 configuration (start-up seam: loadConfig) > AC_22_EmptyPasswordThrowsAClearMessage
+AssertionError: expected [Function] to throw error matching /MCP_DB_PASSWORD/ but got 'not implemented'
+
+- Expected:
+/MCP_DB_PASSWORD/
+
++ Received:
+"not implemented"
+
+ ❯ tests/server.test.ts:409:55
+    407|
+    408|   it('AC_22_EmptyPasswordThrowsAClearMessage', () => {
+    409|     expect(() => loadConfig({ MCP_DB_PASSWORD: '' })).toThrow(/MCP_DB_…
+       |                                                       ^
+    410|   });
+    411|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[88/117]⎯
+
+ FAIL  tests/server.test.ts > AC_22 configuration (start-up seam: loadConfig) > AC_22_ErrorMessageDoesNotEchoAPassword
+AssertionError: expected 'not implemented' to match /MCP_DB_PASSWORD/
+
+- Expected:
+/MCP_DB_PASSWORD/
+
++ Received:
+"not implemented"
+
+ ❯ tests/server.test.ts:419:17
+    417|       msg = (e as Error).message;
+    418|     }
+    419|     expect(msg).toMatch(/MCP_DB_PASSWORD/);
+       |                 ^
+    420|     expect(msg).not.toContain(SECRET);
+    421|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[89/117]⎯
+
+ FAIL  tests/server.test.ts > AC_22 configuration (start-up seam: loadConfig) > AC_22_DefaultsAreApplied
+Error: not implemented
+ ❯ loadConfig src/config.ts:21:9
+     19|
+     20| export function loadConfig(_env: NodeJS.ProcessEnv): Config {
+     21|   throw new Error('not implemented');
+       |         ^
+     22| }
+     23|
+ ❯ tests/server.test.ts:424:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[90/117]⎯
+
+ FAIL  tests/server.test.ts > AC_22 configuration (start-up seam: loadConfig) > AC_22_OverridesAreRead
+Error: not implemented
+ ❯ loadConfig src/config.ts:21:9
+     19|
+     20| export function loadConfig(_env: NodeJS.ProcessEnv): Config {
+     21|   throw new Error('not implemented');
+       |         ^
+     22| }
+     23|
+ ❯ tests/server.test.ts:434:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[91/117]⎯
+
+ FAIL  tests/server.test.ts > AC_22 configuration (start-up seam: loadConfig) > AC_22_NonNumericPortThrowsAClearMessage
+AssertionError: expected [Function] to throw error matching /MCP_DB_PORT/ but got 'not implemented'
+
+- Expected:
+/MCP_DB_PORT/
+
++ Received:
+"not implemented"
+
+ ❯ tests/server.test.ts:450:62
+    448|
+    449|   it('AC_22_NonNumericPortThrowsAClearMessage', () => {
+    450|     expect(() => loadConfig({ ...ENV, MCP_DB_PORT: 'abc' })).toThrow(/…
+       |                                                              ^
+    451|   });
+    452| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[92/117]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  117 failed | 50 passed (167)
+   Start at  16:02:43
+   Duration  2.22s (import 42%, tests 34%, transform 22%, worker 2%)
+

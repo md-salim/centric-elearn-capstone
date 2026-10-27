@@ -9,3 +9,6 @@ dist/
 
 # Mechanical session notes written by the Stop hook (rewritten every turn)
 docs/session-logs/*-auto-*.md
+
+# MCP server audit logs
+mcp/logs/
