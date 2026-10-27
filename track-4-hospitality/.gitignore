@@ -6,3 +6,6 @@ dist/
 .vs/
 .idea/
 .env
+
+# Mechanical session notes written by the Stop hook (rewritten every turn)
+docs/session-logs/*-auto-*.md
