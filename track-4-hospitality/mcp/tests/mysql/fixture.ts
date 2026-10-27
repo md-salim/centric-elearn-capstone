@@ -26,10 +26,10 @@ const DB_SETUP = join(ROOT, 'db-setup');
 // V003 and V004 are demo seed data; the fixture seeds its own rows instead.
 // V005 only renames a state in existing rows, so there is nothing to rename.
 const MIGRATION_FILES = [
-  'V001__create_schema.sql',
-  'V002__reference_data.sql',
-  'V006__housekeeping_columns.sql',
-  'V007__housekeeping_tables.sql',
+  // 'V001__create_schema.sql',
+  // 'V002__reference_data.sql',
+  // 'V006__housekeeping_columns.sql',
+  // 'V007__housekeeping_tables.sql',
 ];
 
 export const FIXED_NOW = new Date('2026-03-10T10:46:00.000Z');

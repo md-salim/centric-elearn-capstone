@@ -1,17 +1,34 @@
 import { useState } from 'react'
+import { listHotels } from '../api/hotels'
 import { getOccupancy } from '../api/reports'
 import StateView from '../components/StateView'
 import { useAsync } from '../hooks/useAsync'
 
 export default function OccupancyPage() {
+  const [hotelId, setHotelId] = useState('')
   const [from, setFrom] = useState('2026-10-01')
   const [to, setTo] = useState('2026-10-07')
-  const report = useAsync(() => getOccupancy({ from, to }), [from, to])
+  const hotels = useAsync(listHotels, [])
+  const report = useAsync(
+    () => getOccupancy({ hotelId: hotelId ? Number(hotelId) : undefined, from, to }),
+    [hotelId, from, to],
+  )
 
   return (
     <section>
       <h1>Occupancy</h1>
       <div className="filters">
+        <StateView state={hotels} isEmpty={items => items.length === 0} emptyText="No hotels configured.">
+          {items => (
+            <label>
+              Hotel{' '}
+              <select value={hotelId} onChange={e => setHotelId(e.target.value)}>
+                <option value="">All hotels</option>
+                {items.map(hotel => <option key={hotel.id} value={hotel.id}>{hotel.name}</option>)}
+              </select>
+            </label>
+          )}
+        </StateView>
         <label>From <input type="date" value={from} onChange={e => setFrom(e.target.value)} /></label>
         <label>To <input type="date" value={to} onChange={e => setTo(e.target.value)} /></label>
       </div>

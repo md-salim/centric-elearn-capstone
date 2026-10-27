@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ToolContext, ToolResult } from './types.js';
+import { auditedQuery, errorResult, numberValue, successResult, validDate } from './support.js';
 
 export const name = 'housekeeper_load';
 
@@ -12,8 +13,43 @@ export const inputSchema = {
 };
 
 export async function handler(
-  _input: z.infer<z.ZodObject<typeof inputSchema>>,
-  _ctx: ToolContext,
+  input: z.infer<z.ZodObject<typeof inputSchema>>,
+  ctx: ToolContext,
 ): Promise<ToolResult> {
-  throw new Error('not implemented');
+  if (!validDate(input.date)) return errorResult('date must be a valid YYYY-MM-DD date.');
+
+  const sql = `
+    SELECT housekeeper_id, display_name, floor, rooms_assigned, rooms_completed
+    FROM vw_housekeeper_load
+    WHERE hotel_id = ? AND work_date = ?
+    ORDER BY housekeeper_id, floor`;
+  const { result, error } = await auditedQuery(ctx, name, input, sql, [input.hotelId, input.date]);
+  if (error || !result) return errorResult(error ?? 'Query failed.');
+
+  const byHousekeeper = new Map<number, {
+    housekeeperId: number;
+    displayName: string;
+    floors: number[];
+    assigned: number;
+    completed: number;
+  }>();
+  for (const [idValue, displayNameValue, floorValue, assignedValue, completedValue] of result.rows) {
+    const housekeeperId = numberValue(idValue);
+    let housekeeper = byHousekeeper.get(housekeeperId);
+    if (!housekeeper) {
+      housekeeper = { housekeeperId, displayName: String(displayNameValue), floors: [], assigned: 0, completed: 0 };
+      byHousekeeper.set(housekeeperId, housekeeper);
+    }
+    const floor = numberValue(floorValue);
+    if (!housekeeper.floors.includes(floor)) housekeeper.floors.push(floor);
+    housekeeper.assigned += numberValue(assignedValue);
+    housekeeper.completed += numberValue(completedValue);
+  }
+
+  const housekeepers = [...byHousekeeper.values()].map((item) => ({
+    ...item,
+    floors: item.floors.sort((a, b) => a - b),
+    outstanding: item.assigned - item.completed,
+  }));
+  return successResult({ hotelId: input.hotelId, date: input.date, housekeepers });
 }

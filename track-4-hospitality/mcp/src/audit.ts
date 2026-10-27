@@ -1,4 +1,4 @@
-import { appendFile, mkdir } from 'node:fs/promises';
+import { appendFile, mkdir, open } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 export interface AuditEntry {
@@ -14,6 +14,7 @@ export interface AuditEntry {
 
 export interface Audit {
   record(e: AuditEntry): Promise<void>;
+  prepare?(): Promise<void>;
 }
 
 /**
@@ -28,6 +29,11 @@ export function createFileAudit(path: string): Audit {
     await appendFile(path, line, { encoding: 'utf8', mode: 0o600 });
   };
   return {
+    async prepare(): Promise<void> {
+      await mkdir(dirname(path), { recursive: true });
+      const file = await open(path, 'a', 0o600);
+      await file.close();
+    },
     record(e: AuditEntry): Promise<void> {
       // Serialise writes so lines never interleave; a failure does not poison later writes.
       const run = queue.then(() => write(e));

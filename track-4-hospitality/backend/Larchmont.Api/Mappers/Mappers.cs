@@ -21,7 +21,7 @@ public static class HotelMapper
 
 public static class RoomTypeMapper
 {
-    public static RoomTypeDto ToDto(this RoomType t) => new(t.Id, t.Code, t.Name, t.MaxOccupancy, t.BaseRate);
+    public static RoomTypeDto ToDto(this RoomType t) => new(t.Id, t.Code, t.Name, t.MaxOccupancy, t.BaseRate, t.SlaMinutes);
 
     public static void Apply(this RoomType t, RoomTypeRequest r)
     {

@@ -2,7 +2,7 @@
 body { margin: 0; }
 .topbar { display: flex; align-items: center; gap: 2rem; padding: 0.75rem 1.5rem; background: #243b53; color: #fff; }
 .topbar .brand { font-weight: 700; }
-.topbar nav { display: flex; gap: 1rem; }
+.topbar nav { display: flex; gap: 1rem; flex-wrap: wrap; }
 .topbar a { color: #bcccdc; text-decoration: none; }
 .topbar a.active { color: #fff; border-bottom: 2px solid #f0b429; }
 main { padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
@@ -13,4 +13,33 @@ th { background: #f0f4f8; }
 .state.error { color: #b8302a; }
 .pager { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
 .filters { display: flex; gap: 1rem; margin-bottom: 0.5rem; }
+.back-link { display: inline-block; margin-bottom: 1rem; padding: 0.45rem 0.7rem; border-radius: 0.25rem; background: #243b53; color: #fff; text-decoration: none; }
 .summary { font-weight: 600; }
+.page-heading, .floor-heading, .room-card-heading { display: flex; align-items: center; gap: 1rem; }
+.page-heading { justify-content: space-between; }
+.connection-status { font-weight: 700; }
+.connection-status.live, .state.success { color: #247a43; }
+.connection-status.reconnecting { color: #b7791f; }
+.housekeeping-floors { display: grid; gap: 1rem; }
+.floor-section { padding: 1rem; background: #edf2f7; border-radius: 0.5rem; }
+.floor-section.busiest { border-left: 5px solid #d69e2e; }
+.floor-heading { flex-wrap: wrap; }
+.floor-heading h2 { margin: 0; }
+.floor-heading span { color: #52606d; }
+.room-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+.room-card { padding: 0.75rem; background: #fff; border: 2px solid #cbd2d9; border-radius: 0.5rem; }
+.room-card.status-ready { border-color: #48a868; }
+.room-card.status-dirty, .room-card.status-cleaning { border-color: #d69e2e; }
+.room-card.status-inspected { border-color: #4299e1; }
+.room-card.status-outoforder { border-color: #c53030; }
+.room-card p { margin: 0.5rem 0; }
+.room-status { font-weight: 700; }
+.badge { display: inline-block; padding: 0.15rem 0.4rem; background: #fff3cd; border-radius: 0.25rem; }
+.room-actions, .ooo-form { display: grid; gap: 0.4rem; margin-top: 0.75rem; }
+.ooo-form label, .lookup-form label { display: grid; gap: 0.3rem; }
+.lookup-form { display: flex; align-items: end; gap: 0.75rem; }
+.ready-by-result { margin-top: 1rem; padding: 1rem; background: #fff; border-radius: 0.5rem; }
+@media (max-width: 700px) {
+  .topbar { align-items: flex-start; flex-direction: column; gap: 0.75rem; }
+  .filters, .lookup-form { align-items: flex-start; flex-direction: column; }
+}

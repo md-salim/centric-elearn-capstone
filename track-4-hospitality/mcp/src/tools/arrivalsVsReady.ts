@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ToolContext, ToolResult } from './types.js';
+import { auditedQuery, errorResult, numberValue, successResult, validDate } from './support.js';
 
 export const name = 'arrivals_without_ready_room';
 
@@ -12,8 +13,26 @@ export const inputSchema = {
 };
 
 export async function handler(
-  _input: z.infer<z.ZodObject<typeof inputSchema>>,
-  _ctx: ToolContext,
+  input: z.infer<z.ZodObject<typeof inputSchema>>,
+  ctx: ToolContext,
 ): Promise<ToolResult> {
-  throw new Error('not implemented');
+  if (!validDate(input.date)) return errorResult('date must be a valid YYYY-MM-DD date.');
+
+  const sql = `
+    SELECT room_type_code, room_type_name, arrivals, ready_rooms
+    FROM vw_arrivals_vs_ready
+    WHERE hotel_id = ? AND arrival_date = ?
+    ORDER BY room_type_code`;
+  const { result, error } = await auditedQuery(ctx, name, input, sql, [input.hotelId, input.date]);
+  if (error || !result) return errorResult(error ?? 'Query failed.');
+
+  const roomTypes = result.rows.flatMap(([code, nameValue, arrivalsValue, readyValue]) => {
+    const arrivals = numberValue(arrivalsValue);
+    const readyRooms = numberValue(readyValue);
+    const shortfall = arrivals - readyRooms;
+    return shortfall > 0
+      ? [{ roomTypeCode: String(code), roomType: String(nameValue), arrivals, readyRooms, shortfall }]
+      : [];
+  });
+  return successResult({ hotelId: input.hotelId, date: input.date, roomTypes });
 }

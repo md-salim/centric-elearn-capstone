@@ -1,4 +1,5 @@
-import { Parser } from 'node-sql-parser';
+import { createRequire } from 'node:module';
+import type { Parser as SqlParser } from 'node-sql-parser';
 import { ALLOWED_VIEWS } from './config.js';
 
 export type GuardResult = { ok: true } | { ok: false; reason: string };
@@ -35,7 +36,9 @@ const FORBIDDEN_TEXT: [RegExp, string][] = [
   ],
 ];
 
-let parser: Parser | undefined;
+const require = createRequire(import.meta.url);
+const { Parser } = require('node-sql-parser') as typeof import('node-sql-parser');
+let parser: SqlParser | undefined;
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);

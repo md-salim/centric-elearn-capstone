@@ -164,6 +164,79 @@ public class ReportServiceTests
     }
 
     [Fact]
+    public async Task AC_56_CheckoutDateIsNotCountedAsAnOccupiedNight()
+    {
+        var date = new DateOnly(2026, 10, 2);
+        _hotels.Setup(h => h.GetAsync(1)).ReturnsAsync(new Hotel { Id = 1 });
+        _bookings.Setup(b => b.ListOverlappingAsync(1, date, date)).ReturnsAsync(
+            Enumerable.Range(1, 4)
+                .Select(id => new Booking
+                {
+                    Id = id,
+                    HotelId = 1,
+                    CheckIn = date.AddDays(-1),
+                    CheckOut = date
+                })
+                .Concat(Enumerable.Range(5, 5).Select(id => new Booking
+                {
+                    Id = id,
+                    HotelId = 1,
+                    CheckIn = date.AddDays(-1),
+                    CheckOut = date.AddDays(1)
+                }))
+                .ToList());
+        _rooms.Setup(r => r.CountForHotelAsync(1)).ReturnsAsync(20);
+
+        var report = await Sut().GetOccupancyAsync(1, date, date);
+
+        Assert.Equal(5, report.RoomNightsSold);
+        Assert.Equal(25m, report.OccupancyPct);
+        Assert.Equal(5, Assert.Single(report.Days).RoomsSold);
+    }
+
+    [Fact]
+    public async Task AC_56_WeeklyOccupancyExcludesCheckoutDates()
+    {
+        var from = new DateOnly(2026, 10, 1);
+        var to = new DateOnly(2026, 10, 7);
+        _hotels.Setup(h => h.GetAsync(1)).ReturnsAsync(new Hotel { Id = 1 });
+        var bookings = Enumerable.Range(1, 3)
+            .Select(id => new Booking
+            {
+                Id = id,
+                HotelId = 1,
+                CheckIn = from,
+                CheckOut = to.AddDays(1)
+            })
+            .Concat(Enumerable.Range(4, 4).Select(id => new Booking
+            {
+                Id = id,
+                HotelId = 1,
+                CheckIn = from,
+                CheckOut = from.AddDays(1)
+            }))
+            .Concat(Enumerable.Range(8, 20).Select(id =>
+            {
+                var checkIn = from.AddDays(1 + (id - 8) / 4);
+                return new Booking
+                {
+                    Id = id,
+                    HotelId = 1,
+                    CheckIn = checkIn,
+                    CheckOut = checkIn.AddDays(1)
+                };
+            }))
+            .ToList();
+        _bookings.Setup(b => b.ListOverlappingAsync(1, from, to)).ReturnsAsync(bookings);
+        _rooms.Setup(r => r.CountForHotelAsync(1)).ReturnsAsync(20);
+
+        var report = await Sut().GetOccupancyAsync(1, from, to);
+
+        Assert.Equal(45, report.RoomNightsSold);
+        Assert.Equal(32.1m, report.OccupancyPct);
+    }
+
+    [Fact]
     public async Task Occupancy_ToBeforeFrom_IsRejected()
     {
         await Assert.ThrowsAsync<BusinessRuleException>(() =>

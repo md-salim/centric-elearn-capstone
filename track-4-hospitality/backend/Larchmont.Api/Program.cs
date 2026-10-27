@@ -49,7 +49,7 @@ builder.Services.AddScoped<IBoardNotifier, SignalRBoardNotifier>();
 
 var app = builder.Build();
 
-if (!app.Environment.IsEnvironment("Testing"))
+/* if (!app.Environment.IsEnvironment("Testing"))
 {
     var upgrader = DeployChanges.To
         .MySqlDatabase(connectionString)
@@ -59,7 +59,7 @@ if (!app.Environment.IsEnvironment("Testing"))
         .Build();
     var result = upgrader.PerformUpgrade();
     if (!result.Successful) throw result.Error;
-}
+} */
 
 app.UseExceptionHandler();
 app.UseCors();

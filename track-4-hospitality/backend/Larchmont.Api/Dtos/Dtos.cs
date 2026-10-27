@@ -5,7 +5,7 @@ public record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int
 public record HotelDto(int Id, string Code, string Name, string City, string Region, string AddressLine, string Phone, bool Active);
 public record HotelRequest(string Code, string Name, string City, string Region, string AddressLine, string Phone, bool Active = true);
 
-public record RoomTypeDto(int Id, string Code, string Name, int MaxOccupancy, decimal BaseRate);
+public record RoomTypeDto(int Id, string Code, string Name, int MaxOccupancy, decimal BaseRate, int SlaMinutes);
 public record RoomTypeRequest(string Code, string Name, int MaxOccupancy, decimal BaseRate);
 
 public record RoomDto(int Id, int HotelId, int RoomTypeId, string RoomTypeName, string RoomNumber, int Floor, string Status, string? Notes);

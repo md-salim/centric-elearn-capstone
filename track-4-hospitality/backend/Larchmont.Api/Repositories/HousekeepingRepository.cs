@@ -69,9 +69,11 @@ public class HousekeepingRepository : IHousekeepingRepository
         if (floor.HasValue) rooms = rooms.Where(r => r.Floor == floor.Value);
         return await rooms
             .Join(_db.RoomTypes.AsNoTracking(), r => r.RoomTypeId, t => t.Id,
-                (r, t) => new RoomTimingRow(r.Id, r.RoomNumber, r.Floor, t.Name, t.SlaMinutes, r.Status, r.SelfMarked,
-                    r.CheckedOutAt, r.ReadyAt, r.OutOfOrderReason, r.ExpectedReturnAt))
-            .OrderBy(x => x.Floor).ThenBy(x => x.RoomNumber)
+                (r, t) => new { Room = r, RoomType = t })
+            .OrderBy(x => x.Room.Floor).ThenBy(x => x.Room.RoomNumber)
+            .Select(x => new RoomTimingRow(x.Room.Id, x.Room.RoomNumber, x.Room.Floor, x.RoomType.Name,
+                x.RoomType.SlaMinutes, x.Room.Status, x.Room.SelfMarked, x.Room.CheckedOutAt, x.Room.ReadyAt,
+                x.Room.OutOfOrderReason, x.Room.ExpectedReturnAt))
             .ToListAsync();
     }
 
@@ -106,8 +108,9 @@ public class HousekeepingRepository : IHousekeepingRepository
         _db.HousekeeperFloors.AsNoTracking()
             .Where(f => f.HotelId == hotelId)
             .Join(_db.Users.AsNoTracking(), f => f.UserId, u => u.Id,
-                (f, u) => new FloorAssignmentRow(f.Floor, u.Id, u.DisplayName))
+                (f, u) => new { Floor = f.Floor, UserId = u.Id, u.DisplayName })
             .OrderBy(x => x.Floor)
+            .Select(x => new FloorAssignmentRow(x.Floor, x.UserId, x.DisplayName))
             .ToListAsync();
 
     public Task<List<int>> ListRoomFloorsAsync(int hotelId) =>
