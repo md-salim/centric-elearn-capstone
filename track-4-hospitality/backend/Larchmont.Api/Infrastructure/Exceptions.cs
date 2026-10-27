@@ -19,6 +19,24 @@ public class BusinessRuleException : Exception
     public BusinessRuleException(string message) : base(message) { }
 }
 
+/// <summary>An illegal room state move (BR-03). Maps to 400, not the 422 used by other business rules.</summary>
+public class InvalidTransitionException : Exception
+{
+    public InvalidTransitionException(string message) : base(message) { }
+}
+
+/// <summary>A well-formed request that cannot be applied (for example a housekeeper not in this hotel). Maps to 400.</summary>
+public class InvalidRequestException : Exception
+{
+    public InvalidRequestException(string message) : base(message) { }
+}
+
+/// <summary>A caller that failed the webhook signature check. Maps to 401. The message never carries the secret.</summary>
+public class UnauthorizedException : Exception
+{
+    public UnauthorizedException(string message) : base(message) { }
+}
+
 public class ApiExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<ApiExceptionHandler> _logger;
@@ -36,6 +54,15 @@ public class ApiExceptionHandler : IExceptionHandler
                         .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray()))
                 { Status = 400, Title = "Validation failed" };
                 break;
+            case InvalidTransitionException it:
+                problem = new ProblemDetails { Status = 400, Title = "Invalid transition", Detail = it.Message };
+                break;
+            case InvalidRequestException ir:
+                problem = new ProblemDetails { Status = 400, Title = "Invalid request", Detail = ir.Message };
+                break;
+            case UnauthorizedException:
+                problem = new ProblemDetails { Status = 401, Title = "Unauthorized", Detail = "The request signature is missing or invalid." };
+                break;
             case NotFoundException nf:
                 problem = new ProblemDetails { Status = 404, Title = "Not found", Detail = nf.Message };
                 break;
@@ -51,7 +78,8 @@ public class ApiExceptionHandler : IExceptionHandler
                 break;
         }
         context.Response.StatusCode = problem.Status!.Value;
-        await context.Response.WriteAsJsonAsync(problem, ct);
+        // The contract says every error is ProblemDetails (application/problem+json), not plain JSON.
+        await context.Response.WriteAsJsonAsync(problem, options: null, contentType: "application/problem+json", cancellationToken: ct);
         return true;
     }
 }

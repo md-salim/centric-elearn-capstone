@@ -58,10 +58,10 @@ public class GuestService : IGuestService
 
 public interface IUserService
 {
-    Task<List<UserDto>> ListAsync(int? hotelId, string? role);
-    Task<UserDto> GetAsync(int id);
-    Task<UserDto> CreateAsync(UserRequest request);
-    Task<UserDto> UpdateAsync(int id, UserUpdateRequest request);
+    Task<List<UserPublicDto>> ListAsync(int? hotelId, string? role);
+    Task<UserPublicDto> GetAsync(int id);
+    Task<UserPublicDto> CreateAsync(UserRequest request);
+    Task<UserPublicDto> UpdateAsync(int id, UserUpdateRequest request);
 }
 
 public class UserService : IUserService
@@ -75,13 +75,13 @@ public class UserService : IUserService
         _validator = validator;
     }
 
-    public async Task<List<UserDto>> ListAsync(int? hotelId, string? role) =>
-        (await _users.ListAsync(hotelId, role)).Select(u => u.ToDto()).ToList();
+    public async Task<List<UserPublicDto>> ListAsync(int? hotelId, string? role) =>
+        (await _users.ListAsync(hotelId, role)).Select(u => u.ToPublicDto()).ToList();
 
-    public async Task<UserDto> GetAsync(int id) =>
-        (await _users.GetAsync(id) ?? throw new NotFoundException($"User {id} not found.")).ToDto();
+    public async Task<UserPublicDto> GetAsync(int id) =>
+        (await _users.GetAsync(id) ?? throw new NotFoundException($"User {id} not found.")).ToPublicDto();
 
-    public async Task<UserDto> CreateAsync(UserRequest request)
+    public async Task<UserPublicDto> CreateAsync(UserRequest request)
     {
         await _validator.ValidateAndThrowAsync(request);
         if (await _users.GetByEmailAsync(request.Email.Trim()) != null)
@@ -96,10 +96,10 @@ public class UserService : IUserService
             PasswordHash = PasswordHasher.Hash(request.Password)
         };
         await _users.AddAsync(user);
-        return user.ToDto();
+        return user.ToPublicDto();
     }
 
-    public async Task<UserDto> UpdateAsync(int id, UserUpdateRequest request)
+    public async Task<UserPublicDto> UpdateAsync(int id, UserUpdateRequest request)
     {
         var user = await _users.GetAsync(id) ?? throw new NotFoundException($"User {id} not found.");
         user.DisplayName = request.DisplayName.Trim();
@@ -108,7 +108,7 @@ public class UserService : IUserService
         user.Active = request.Active;
         user.Phone = request.Phone;
         await _users.SaveAsync();
-        return user.ToDto();
+        return user.ToPublicDto();
     }
 }
 

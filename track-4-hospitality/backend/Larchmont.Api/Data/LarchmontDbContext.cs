@@ -1,11 +1,18 @@
 using System.Text.RegularExpressions;
 using Larchmont.Api.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Larchmont.Api.Data;
 
 public class LarchmontDbContext : DbContext
 {
+    /// <summary>Column names that do not follow the snake_case rule applied to the property name.</summary>
+    private static readonly Dictionary<string, string> ColumnOverrides = new()
+    {
+        ["OutOfOrderReason"] = "ooo_reason",
+    };
+
     public LarchmontDbContext(DbContextOptions<LarchmontDbContext> options) : base(options) { }
 
     public DbSet<Hotel> Hotels => Set<Hotel>();
@@ -18,6 +25,37 @@ public class LarchmontDbContext : DbContext
     public DbSet<Guest> Guests => Set<Guest>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<BookingNote> BookingNotes => Set<BookingNote>();
+    public DbSet<HousekeeperFloor> HousekeeperFloors => Set<HousekeeperFloor>();
+    public DbSet<CheckoutEvent> CheckoutEvents => Set<CheckoutEvent>();
+
+    /// <summary>
+    /// Bumps RowVersion on every modified Room or Booking. EF then writes
+    /// "WHERE row_version = @original", so a save over a row someone else changed
+    /// matches no rows and raises DbUpdateConcurrencyException (mapped to 409 in the repositories).
+    /// </summary>
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        BumpRowVersions();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        BumpRowVersions();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void BumpRowVersions()
+    {
+        foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Modified))
+        {
+            if (entry.Entity is Room or Booking)
+            {
+                var property = entry.Property(nameof(Room.RowVersion));
+                property.CurrentValue = Convert.ToInt32(property.OriginalValue) + 1;
+            }
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -38,6 +76,7 @@ public class LarchmontDbContext : DbContext
             e.Property(x => x.Code).HasMaxLength(8);
             e.Property(x => x.Name).HasMaxLength(80);
             e.Property(x => x.BaseRate).HasColumnType("decimal(10,2)");
+            e.Property(x => x.SlaMinutes).HasColumnType("smallint unsigned");
         });
         b.Entity<RatePlan>(e =>
         {
@@ -57,13 +96,31 @@ public class LarchmontDbContext : DbContext
             e.Property(x => x.RoomNumber).HasMaxLength(10);
             e.Property(x => x.Status).HasMaxLength(20);
             e.Property(x => x.Notes).HasMaxLength(255);
+            e.Property(x => x.OutOfOrderReason).HasMaxLength(255);
+            e.Property(x => x.RowVersion).IsConcurrencyToken();
             e.HasIndex(x => new { x.HotelId, x.RoomNumber }).IsUnique();
+            e.HasIndex(x => new { x.HotelId, x.Floor, x.RoomNumber }).HasDatabaseName("ix_rooms_hotel_floor");
         });
         b.Entity<RoomStatusEvent>(e =>
         {
             e.ToTable("room_status_history");
             e.Property(x => x.FromStatus).HasMaxLength(20);
             e.Property(x => x.ToStatus).HasMaxLength(20);
+            e.Property(x => x.Reason).HasMaxLength(255);
+            e.Property(x => x.ByUserRole).HasMaxLength(20);
+        });
+        b.Entity<HousekeeperFloor>(e =>
+        {
+            e.ToTable("housekeeper_floors");
+            e.HasKey(x => new { x.HotelId, x.Floor });
+            e.HasIndex(x => x.UserId).HasDatabaseName("ix_housekeeper_floors_user");
+        });
+        b.Entity<CheckoutEvent>(e =>
+        {
+            e.ToTable("checkout_events");
+            e.Property(x => x.BookingRef).HasMaxLength(20);
+            e.Property(x => x.Source).HasMaxLength(10);
+            e.HasIndex(x => new { x.BookingRef, x.CheckedOutAt }).IsUnique().HasDatabaseName("ux_checkout_events_ref_time");
         });
         b.Entity<User>(e =>
         {
@@ -99,6 +156,7 @@ public class LarchmontDbContext : DbContext
             e.Property(x => x.Channel).HasMaxLength(30);
             e.Property(x => x.Status).HasMaxLength(20);
             e.Property(x => x.TotalAmount).HasColumnType("decimal(10,2)");
+            e.Property(x => x.RowVersion).IsConcurrencyToken();
             e.HasIndex(x => x.Reference).IsUnique();
             e.HasIndex(x => new { x.HotelId, x.CheckIn });
         });
@@ -110,6 +168,8 @@ public class LarchmontDbContext : DbContext
 
         foreach (var entity in b.Model.GetEntityTypes())
             foreach (var p in entity.GetProperties())
-                p.SetColumnName(Regex.Replace(p.Name, "(?<=[a-z0-9])([A-Z])", "_$1").ToLowerInvariant());
+                p.SetColumnName(ColumnOverrides.TryGetValue(p.Name, out var column)
+                    ? column
+                    : Regex.Replace(p.Name, "(?<=[a-z0-9])([A-Z])", "_$1").ToLowerInvariant());
     }
 }

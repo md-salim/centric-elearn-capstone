@@ -33,11 +33,12 @@ public class BookingService : IBookingService
     private readonly IValidator<BookingRequest> _validator;
     private readonly IValidator<BookingUpdateRequest> _updateValidator;
     private readonly IValidator<BookingNoteRequest> _noteValidator;
+    private readonly IHousekeepingService? _housekeeping;
 
     public BookingService(IBookingRepository bookings, IGuestRepository guests, IHotelRepository hotels,
         IRoomTypeRepository types, IRoomRepository rooms, IRateRepository rates,
         IValidator<BookingRequest> validator, IValidator<BookingUpdateRequest> updateValidator,
-        IValidator<BookingNoteRequest> noteValidator)
+        IValidator<BookingNoteRequest> noteValidator, IHousekeepingService? housekeeping = null)
     {
         _bookings = bookings;
         _guests = guests;
@@ -48,6 +49,7 @@ public class BookingService : IBookingService
         _validator = validator;
         _updateValidator = updateValidator;
         _noteValidator = noteValidator;
+        _housekeeping = housekeeping;
     }
 
     public async Task<PagedResult<BookingDto>> SearchAsync(BookingFilter filter)
@@ -159,25 +161,12 @@ public class BookingService : IBookingService
         var booking = await LoadAsync(id);
         if (booking.Status != BookingStatuses.CheckedIn)
             throw new BusinessRuleException($"A {booking.Status} booking cannot be checked out.");
-        booking.Status = BookingStatuses.CheckedOut;
-        booking.UpdatedAt = DateTime.UtcNow;
-        if (booking.RoomId.HasValue)
-        {
-            var room = await _rooms.GetAsync(booking.RoomId.Value);
-            if (room != null)
-            {
-                await _rooms.AddStatusEventAsync(new RoomStatusEvent
-                {
-                    RoomId = room.Id,
-                    FromStatus = room.Status,
-                    ToStatus = RoomStatuses.Dirty,
-                    ChangedAt = DateTime.UtcNow
-                });
-                room.Status = RoomStatuses.Dirty;
-            }
-        }
-        await _bookings.SaveAsync();
-        return await ToDtoAsync(booking);
+        // Same path as the lock webhook: room Dirty, checked_out_at set (earliest wins), event recorded, push.
+        // Optional in the constructor only so existing callers that build the service by hand still compile.
+        // DI always supplies it. Desk checkout cannot run without it.
+        var housekeeping = _housekeeping ?? throw new InvalidOperationException("Housekeeping service is not configured for BookingService.");
+        await housekeeping.RecordDeskCheckoutAsync(booking.Id);
+        return await ToDtoAsync(await LoadAsync(id));
     }
 
     public async Task<BookingDto> AssignRoomAsync(int id, AssignRoomRequest request)
@@ -185,11 +174,16 @@ public class BookingService : IBookingService
         var booking = await LoadAsync(id);
         if (booking.Status != BookingStatuses.Confirmed && booking.Status != BookingStatuses.CheckedIn)
             throw new BusinessRuleException($"A {booking.Status} booking cannot be given a room.");
+        // Read the room before the overlap check. The room's version is bumped below, so two assigns
+        // to the same room serialise on the room row: the loser gets a 409 (AC-25).
         var room = await _rooms.GetAsync(request.RoomId) ?? throw new NotFoundException($"Room {request.RoomId} not found.");
         if (room.HotelId != booking.HotelId) throw new BusinessRuleException("That room belongs to a different hotel.");
         if (room.RoomTypeId != booking.RoomTypeId) throw new BusinessRuleException("That room is a different room type from the one booked.");
+        if (room.Status == RoomStatuses.OutOfOrder)
+            throw new BusinessRuleException($"Room {room.RoomNumber} is out of order and cannot be assigned.");
         if (await _bookings.RoomHasOverlapAsync(room.Id, booking.Id, booking.CheckIn, booking.CheckOut))
             throw new ConflictException($"Room {room.RoomNumber} is already taken for those dates.");
+        _rooms.BumpVersion(room);
         booking.RoomId = room.Id;
         booking.UpdatedAt = DateTime.UtcNow;
         await _bookings.SaveAsync();

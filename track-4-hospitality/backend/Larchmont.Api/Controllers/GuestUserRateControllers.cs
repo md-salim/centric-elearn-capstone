@@ -47,21 +47,21 @@ public class UsersController : ControllerBase
     public UsersController(IUserService users) => _users = users;
 
     [HttpGet]
-    public async Task<ActionResult<List<UserDto>>> List([FromQuery] int? hotelId, [FromQuery] string? role) =>
+    public async Task<ActionResult<List<UserPublicDto>>> List([FromQuery] int? hotelId, [FromQuery] string? role) =>
         await _users.ListAsync(hotelId, role);
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<UserDto>> Get(int id) => await _users.GetAsync(id);
+    public async Task<ActionResult<UserPublicDto>> Get(int id) => await _users.GetAsync(id);
 
     [HttpPost]
-    public async Task<ActionResult<UserDto>> Create(UserRequest request)
+    public async Task<ActionResult<UserPublicDto>> Create(UserRequest request)
     {
         var created = await _users.CreateAsync(request);
         return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
     }
 
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<UserDto>> Update(int id, UserUpdateRequest request) => await _users.UpdateAsync(id, request);
+    public async Task<ActionResult<UserPublicDto>> Update(int id, UserUpdateRequest request) => await _users.UpdateAsync(id, request);
 }
 
 [ApiController]

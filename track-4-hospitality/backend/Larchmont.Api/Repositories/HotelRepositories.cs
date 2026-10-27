@@ -53,6 +53,8 @@ public interface IRoomRepository
     Task<int> CountForHotelAsync(int? hotelId);
     Task AddAsync(Room room);
     Task AddStatusEventAsync(RoomStatusEvent ev);
+    /// <summary>Marks the room's version as changed even when no room column changes, so a concurrent write to the room conflicts.</summary>
+    void BumpVersion(Room room);
     Task SaveAsync();
 }
 
@@ -77,5 +79,8 @@ public class RoomRepository : IRoomRepository
 
     public async Task AddAsync(Room room) { _db.Rooms.Add(room); await _db.SaveChangesAsync(); }
     public Task AddStatusEventAsync(RoomStatusEvent ev) { _db.RoomStatusHistory.Add(ev); return Task.CompletedTask; }
-    public Task SaveAsync() => _db.SaveChangesAsync();
+
+    public void BumpVersion(Room room) => _db.Entry(room).Property(r => r.RowVersion).IsModified = true;
+
+    public Task SaveAsync() => DbSave.SaveAsync(_db, "Room changed since it was read. Reload and try again.");
 }

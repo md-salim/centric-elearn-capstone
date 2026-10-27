@@ -11,6 +11,7 @@ public interface IBookingRepository
     Task<(List<Booking> Items, int Total)> SearchAsync(BookingFilter filter);
     Task<Booking?> GetAsync(int id);
     Task<Booking?> GetByExternalRefAsync(string externalRef);
+    Task<Booking?> GetByReferenceAsync(string reference);
     Task<List<Booking>> ListForGuestAsync(int guestId);
     Task<bool> RoomHasOverlapAsync(int roomId, int excludeBookingId, DateOnly checkIn, DateOnly checkOut);
     Task<List<Booking>> ListOverlappingAsync(int? hotelId, DateOnly from, DateOnly to);
@@ -45,6 +46,9 @@ public class BookingRepository : IBookingRepository
     public Task<Booking?> GetAsync(int id) => _db.Bookings.FirstOrDefaultAsync(b => b.Id == id);
     public Task<Booking?> GetByExternalRefAsync(string externalRef) =>
         _db.Bookings.FirstOrDefaultAsync(b => b.ExternalRef == externalRef);
+    public Task<Booking?> GetByReferenceAsync(string reference) =>
+        _db.Bookings.FirstOrDefaultAsync(b => b.Reference == reference);
+
     public Task<List<Booking>> ListForGuestAsync(int guestId) =>
         _db.Bookings.Where(b => b.GuestId == guestId).OrderByDescending(b => b.CheckIn).ToListAsync();
 
@@ -85,5 +89,5 @@ public class BookingRepository : IBookingRepository
 
     public async Task AddAsync(Booking booking) { _db.Bookings.Add(booking); await _db.SaveChangesAsync(); }
     public Task AddNoteAsync(BookingNote note) { _db.BookingNotes.Add(note); return Task.CompletedTask; }
-    public Task SaveAsync() => _db.SaveChangesAsync();
+    public Task SaveAsync() => DbSave.SaveAsync(_db, "The booking or its room changed since it was read. Reload and try again.");
 }

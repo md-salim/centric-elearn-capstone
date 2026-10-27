@@ -103,7 +103,6 @@ public interface IRoomService
     Task<RoomDto> GetAsync(int id);
     Task<RoomDto> CreateAsync(RoomRequest request);
     Task<RoomDto> UpdateAsync(int id, RoomRequest request);
-    Task<RoomDto> SetStatusAsync(int id, RoomStatusRequest request);
     Task<RoomAvailabilityDto> GetAvailabilityAsync(int id, DateOnly from, DateOnly to);
 }
 
@@ -149,7 +148,7 @@ public class RoomService : IRoomService
             RoomNumber = request.RoomNumber.Trim(),
             Floor = request.Floor,
             Notes = request.Notes,
-            Status = RoomStatuses.Clean
+            Status = RoomStatuses.Ready
         };
         await _rooms.AddAsync(room);
         return await ToDtoAsync(room);
@@ -165,25 +164,6 @@ public class RoomService : IRoomService
         room.RoomNumber = request.RoomNumber.Trim();
         room.Floor = request.Floor;
         room.Notes = request.Notes;
-        await _rooms.SaveAsync();
-        return await ToDtoAsync(room);
-    }
-
-    public async Task<RoomDto> SetStatusAsync(int id, RoomStatusRequest request)
-    {
-        if (!RoomStatuses.All.Contains(request.Status))
-            throw new BusinessRuleException($"Status must be one of: {string.Join(", ", RoomStatuses.All)}.");
-        var room = await _rooms.GetAsync(id) ?? throw new NotFoundException($"Room {id} not found.");
-        var previous = room.Status;
-        room.Status = request.Status;
-        await _rooms.AddStatusEventAsync(new RoomStatusEvent
-        {
-            RoomId = room.Id,
-            FromStatus = previous,
-            ToStatus = request.Status,
-            ChangedByUserId = request.ChangedByUserId,
-            ChangedAt = DateTime.UtcNow
-        });
         await _rooms.SaveAsync();
         return await ToDtoAsync(room);
     }

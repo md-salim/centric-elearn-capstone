@@ -75,6 +75,7 @@ public static class RateMapper
 
 public static class UserMapper
 {
-    public static UserDto ToDto(this User u) =>
-        new(u.Id, u.Email, u.DisplayName, u.Role, u.HotelId, u.PasswordHash, u.Active, u.Phone, u.LastLoginAt);
+    /// <summary>The only user shape the API returns. Add a field here only after checking it is needed by the caller.</summary>
+    public static UserPublicDto ToPublicDto(this User u) =>
+        new(u.Id, u.DisplayName, u.Role, u.HotelId, u.Active);
 }

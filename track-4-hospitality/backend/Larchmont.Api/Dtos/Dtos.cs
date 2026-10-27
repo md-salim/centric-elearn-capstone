@@ -29,7 +29,8 @@ public record RoomRateDto(int Id, int HotelId, int RoomTypeId, int RatePlanId, D
 public record RoomRateRequest(int HotelId, int RoomTypeId, int RatePlanId, DateOnly ValidFrom, DateOnly ValidTo, decimal NightlyRate);
 public record QuoteDto(int HotelId, int RoomTypeId, int RatePlanId, int Nights, decimal NightlyRate, decimal Total);
 
-public record UserDto(int Id, string Email, string DisplayName, string Role, int? HotelId, string PasswordHash, bool Active, string? Phone, DateTime? LastLoginAt);
+// Only these fields leave the API for users. Never PasswordHash, Email, Phone or LastLoginAt.
+public record UserPublicDto(int Id, string DisplayName, string Role, int? HotelId, bool Active);
 public record UserRequest(string Email, string DisplayName, string Role, int? HotelId, string Password, string? Phone);
 public record UserUpdateRequest(string DisplayName, string Role, int? HotelId, bool Active, string? Phone);
 

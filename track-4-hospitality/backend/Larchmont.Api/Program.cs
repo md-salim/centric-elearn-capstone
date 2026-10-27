@@ -15,7 +15,10 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod()));
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
+builder.Services.AddSignalR();
+// Every "now" in the housekeeping code comes from here, so tests can replace the clock.
+builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services.AddDbContext<LarchmontDbContext>(o =>
     o.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 4, 0))));
@@ -28,6 +31,7 @@ builder.Services.AddScoped<IGuestRepository, GuestRepository>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IRateRepository, RateRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IHousekeepingRepository, HousekeepingRepository>();
 
 builder.Services.AddScoped<IHotelService, HotelService>();
 builder.Services.AddScoped<IRoomTypeService, RoomTypeService>();
@@ -38,6 +42,10 @@ builder.Services.AddScoped<IRateService, RateService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IChannelImportService, ChannelImportService>();
+builder.Services.AddScoped<IHousekeepingService, HousekeepingService>();
+builder.Services.AddScoped<ILockEventService, LockEventService>();
+builder.Services.AddScoped<ILockSignatureVerifier, LockSignatureVerifier>();
+builder.Services.AddScoped<IBoardNotifier, SignalRBoardNotifier>();
 
 var app = builder.Build();
 
@@ -58,6 +66,7 @@ app.UseCors();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.MapControllers();
+app.MapHub<BoardHub>("/hubs/board");
 app.Run();
 
 public partial class Program { }
