@@ -174,3 +174,11 @@ Secrets are redacted and long prompts are truncated.
 > Then fix compose.yaml:
 >   - Move MYSQL_ROOT_PASSWORD into ... [truncated]
 
+## [auto] 2026-10-27T16:09:46+00:00
+
+> /implement FEATURE-pipeline.md
+
+## [auto] 2026-10-27T16:13:28+00:00
+
+> why larchmont mcp server is failing. Corrent that
+
