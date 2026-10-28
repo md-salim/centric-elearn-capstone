@@ -134,3 +134,103 @@ export interface OccupancyReport {
   occupancyPct: number
   days: { date: string; roomsSold: number }[]
 }
+
+export interface McpArrivalRoomType {
+  roomTypeCode: string
+  roomType: string
+  arrivals: number
+  readyRooms: number
+  shortfall: number
+}
+
+export interface McpArrivalsWithoutReadyRoomResult {
+  hotelId: number
+  date: string
+  roomTypes: McpArrivalRoomType[]
+}
+
+export interface McpLateRoom {
+  roomId: number
+  roomNumber: string
+  floor: number
+  roomType: string
+  status: string
+  checkedOutAt: string
+  dueAt: string
+  slaMinutes: number
+  minutesOver: number
+}
+
+export interface McpRoomsBreachingSlaResult {
+  hotelId: number
+  asOf: string
+  rooms: McpLateRoom[]
+}
+
+export interface McpHousekeeperLoadItem {
+  housekeeperId: number
+  displayName: string
+  floors: number[]
+  assigned: number
+  completed: number
+  outstanding: number
+}
+
+export interface McpHousekeeperLoadResult {
+  hotelId: number
+  date: string
+  housekeepers: McpHousekeeperLoadItem[]
+}
+
+export interface McpOooRoomNight {
+  roomId: number
+  roomNumber: string
+  roomType: string
+  nightsLost: number
+}
+
+export interface McpOooImpactResult {
+  hotelId: number
+  from: string
+  to: string
+  roomNightsLost: number
+  roomNightsAvailable: number
+  shareLost: number
+  byRoom: McpOooRoomNight[]
+}
+
+export interface McpReadonlyQueryResult {
+  columns: string[]
+  rows: (string | number | boolean | null)[][]
+  rowCount: number
+  truncated: boolean
+  durationMs: number
+}
+
+export type McpToolName =
+  | 'arrivals_without_ready_room'
+  | 'rooms_breaching_sla'
+  | 'ooo_impact_on_occupancy'
+  | 'housekeeper_load'
+  | 'run_readonly_query'
+
+export interface McpToolCallRequest {
+  tool: McpToolName
+  arguments: Record<string, unknown>
+}
+
+export interface McpChatMessage {
+  id: string
+  sender: 'user' | 'assistant'
+  timestamp: string
+  content: string
+  toolUsed?: McpToolName
+  toolArguments?: Record<string, unknown>
+  toolData?:
+    | McpArrivalsWithoutReadyRoomResult
+    | McpRoomsBreachingSlaResult
+    | McpHousekeeperLoadResult
+    | McpOooImpactResult
+    | McpReadonlyQueryResult
+  isError?: boolean
+}

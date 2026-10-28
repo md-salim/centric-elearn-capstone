@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "tsBuildInfoFile": "C:/Users/mdsal/.gemini/antigravity/brain/3d0fc43c-128c-4aa7-bc08-df6fb0cc5ba5/scratch/tsconfig.node.tsbuildinfo",
     "target": "ES2022",
     "lib": ["ES2023"],
     "module": "ESNext",

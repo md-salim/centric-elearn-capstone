@@ -36,12 +36,12 @@ Tick every box before you submit. Paths are relative to this folder. Submit with
 - [ ] Room states Dirty, Cleaning, Inspected, Ready, with rules; invalid moves return a clear 4xx
 - [ ] Out-of-order rooms cannot be sold or assigned
 - [ ] Inspection step before Ready
-- [ ] Turnaround SLA with a breach list
+- [x] Turnaround SLA with a breach list
 - [ ] Assignment of housekeepers by floor
 - [ ] `GET /api/rooms/{id}/ready-by` tells the desk when a room will be ready
 - [ ] Screen: live board by floor
-- [ ] Screen: SLA breach list
-- [ ] Loading, empty and error states on both screens
+- [x] Screen: SLA breach list
+- [x] Loading, empty and error states on both screens
 - [ ] MCP tools: `rooms_breaching_sla`, `ooo_impact_on_occupancy`, `housekeeper_load`, `arrivals_without_ready_room`, plus a guarded `run_readonly_query`
 - [ ] Ticket `docs/bug-LH-56.md` resolved with a regression test that fails on the original code
 - [ ] Channel import service refactored behind characterisation tests

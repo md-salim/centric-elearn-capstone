@@ -97,7 +97,7 @@ function BoardForHotel({ hotelId }: { hotelId: number }) {
             ))}
           </select>
         </label>
-        <Link to="/housekeeping/late-rooms">Late rooms</Link>
+        <Link to="/housekeeping/sla-breaches">SLA breach list</Link>
         <Link to="/housekeeping/floor-assignments">Floor assignments</Link>
         <Link to="/housekeeping/ready-by">Ready-by lookup</Link>
       </div>

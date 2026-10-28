@@ -16,6 +16,9 @@ export const getHousekeepingBoard = (hotelId: number) =>
 export const getLateRooms = (hotelId: number) =>
   getJson<LateRoom[]>(`/api/hotels/${hotelId}/late-rooms`)
 
+export const getSlaBreaches = (hotelId: number) =>
+  getJson<LateRoom[]>(`/api/hotels/${hotelId}/sla-breaches`)
+
 export const getFloorAssignments = (hotelId: number) =>
   getJson<FloorAssignment[]>(`/api/hotels/${hotelId}/floor-assignments`)
 
