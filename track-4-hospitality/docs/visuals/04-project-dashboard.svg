@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1000" viewBox="0 0 1200 1000" font-family="Segoe UI, Arial, sans-serif">
+  <style>
+    .h1 { font-size: 32px; font-weight: 700; fill: #1f2937; }
+    .sub { font-size: 16px; fill: #4b5563; }
+    .lab { font-size: 15px; font-weight: 600; fill: #4b5563; }
+    .hero { font-size: 50px; font-weight: 800; fill: #111827; }
+    .unit { font-size: 22px; font-weight: 600; fill: #4b5563; }
+    .d { font-size: 14px; fill: #4b5563; }
+    .s { font-size: 13px; font-weight: 700; }
+    .t { font-size: 17px; font-weight: 700; fill: #111827; }
+  </style>
+  <rect width="1200" height="1000" fill="#f9fafb"/>
+  <text x="600" y="56" text-anchor="middle" class="h1">Larchmont Hotels: project progress at a glance</text>
+  <text x="600" y="86" text-anchor="middle" class="sub">Status on 28 October 2026 · branch "alok-changes"</text>
+
+  <!-- Row 1 tiles -->
+  <rect x="40" y="114" width="360" height="190" rx="14" fill="#fff" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="64" y="148" class="lab">Automatic checks (main system)</text>
+  <text x="64" y="214" class="hero">62</text><text x="148" y="214" class="unit">/ 62 passing</text>
+  <text x="64" y="256" class="s" fill="#15803d">✔ ALL PASSING</text>
+  <text x="64" y="280" class="d">After the move to .NET 10 today</text>
+
+  <rect x="420" y="114" width="360" height="190" rx="14" fill="#fff" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="444" y="148" class="lab">Bugs found</text>
+  <text x="444" y="214" class="hero">15</text><text x="520" y="214" class="unit">in total</text>
+  <rect x="444" y="236" width="170" height="18" rx="4" fill="#15803d"/>
+  <rect x="616" y="236" width="140" height="18" rx="4" fill="#b91c1c"/>
+  <text x="444" y="280" class="s" fill="#15803d">✔ 8 fixed</text>
+  <text x="756" y="280" text-anchor="end" class="s" fill="#b91c1c">✖ 7 open (2 high)</text>
+
+  <rect x="800" y="114" width="360" height="190" rx="14" fill="#fff" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="824" y="148" class="lab">Inspector's verdict</text>
+  <text x="824" y="210" font-size="30" font-weight="800" fill="#b91c1c">⛔ Do not merge</text>
+  <text x="824" y="256" class="s" fill="#b91c1c">✖ NOT READY TO GO LIVE</text>
+  <text x="824" y="280" class="d">11 of 20 checklist items failed</text>
+
+  <!-- Row 2 tiles -->
+  <rect x="40" y="324" width="360" height="190" rx="14" fill="#fff" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="64" y="358" class="lab">Screens for the cleaning board</text>
+  <text x="64" y="424" class="hero">0</text><text x="104" y="424" class="unit">built</text>
+  <text x="64" y="466" class="s" fill="#b45309">⚠ BACK END ONLY</text>
+  <text x="64" y="490" class="d">Staff cannot see the board yet</text>
+
+  <rect x="420" y="324" width="360" height="190" rx="14" fill="#fff" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="444" y="358" class="lab">Data connection checks</text>
+  <text x="444" y="424" class="hero">167</text><text x="552" y="424" class="unit">written</text>
+  <text x="444" y="466" class="s" fill="#b45309">⚠ NOT RUN HERE</text>
+  <text x="444" y="490" class="d">Need a real database on this computer</text>
+
+  <rect x="800" y="324" width="360" height="190" rx="14" fill="#fff" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="824" y="358" class="lab">Claude tools used</text>
+  <text x="824" y="424" class="hero">10</text><text x="892" y="424" class="unit">/ 20</text>
+  <text x="824" y="466" class="s" fill="#b45309">⚠ HALF USED</text>
+  <text x="824" y="490" class="d">2 partly used · 8 never tried</text>
+
+  <!-- Progress bars -->
+  <rect x="40" y="534" width="1120" height="250" rx="14" fill="#fff" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="64" y="570" class="t">How far along each part is</text>
+
+  <text x="64" y="614" class="d">Room-cleaning system (back end)</text>
+  <rect x="380" y="600" width="620" height="18" rx="4" fill="#e5e7eb"/>
+  <rect x="380" y="600" width="620" height="18" rx="4" fill="#15803d"/>
+  <text x="1016" y="614" class="s" fill="#15803d">✔ Built</text>
+
+  <text x="64" y="654" class="d">Bug fixes</text>
+  <rect x="380" y="640" width="620" height="18" rx="4" fill="#e5e7eb"/>
+  <rect x="380" y="640" width="331" height="18" rx="4" fill="#b45309"/>
+  <text x="1016" y="654" class="s" fill="#b45309">8 / 15</text>
+
+  <text x="64" y="694" class="d">Data connection (MCP)</text>
+  <rect x="380" y="680" width="620" height="18" rx="4" fill="#e5e7eb"/>
+  <rect x="380" y="680" width="434" height="18" rx="4" fill="#b45309"/>
+  <text x="1016" y="694" class="s" fill="#b45309">⚠ Not connected</text>
+
+  <text x="64" y="734" class="d">GitHub automatic check</text>
+  <rect x="380" y="720" width="620" height="18" rx="4" fill="#e5e7eb"/>
+  <rect x="380" y="720" width="124" height="18" rx="4" fill="#b91c1c"/>
+  <text x="1016" y="734" class="s" fill="#b91c1c">✖ Out of date</text>
+
+  <text x="64" y="774" class="d">Screens for staff</text>
+  <rect x="380" y="760" width="620" height="18" rx="4" fill="#e5e7eb"/>
+  <text x="1016" y="774" class="s" fill="#b91c1c">✖ Not started</text>
+
+  <!-- Next steps -->
+  <rect x="40" y="804" width="1120" height="170" rx="14" fill="#fffbeb" stroke="#b45309" stroke-width="2"/>
+  <text x="64" y="840" class="t">➜ Next steps to go live</text>
+  <text x="64" y="872" class="d">1. Fix the cleaning timer (bug A, high)</text>
+  <text x="64" y="900" class="d">2. Change the passwords saved in the files (bug B, high, needs the account owners)</text>
+  <text x="64" y="928" class="d">3. Update the GitHub automatic check</text>
+  <text x="620" y="872" class="d">4. Build the cleaning-board screens</text>
+  <text x="620" y="900" class="d">5. Install a database here to test for real</text>
+  <text x="620" y="928" class="d">6. Run the Inspector again, then approve</text>
+  <text x="64" y="958" font-size="12" fill="#6b7280">Bars are rough estimates, for orientation only.</text>
+</svg>

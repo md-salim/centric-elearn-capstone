@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1080" viewBox="0 0 1200 1080" font-family="Segoe UI, Arial, sans-serif">
+  <style>
+    .h1 { font-size: 32px; font-weight: 700; fill: #1f2937; }
+    .sub { font-size: 16px; fill: #4b5563; }
+    .g { font-size: 20px; font-weight: 700; fill: #1f2937; }
+    .t { font-size: 15px; font-weight: 700; fill: #111827; }
+    .d { font-size: 12.5px; fill: #4b5563; }
+    .s { font-size: 12px; font-weight: 700; }
+    .k { font-size: 15px; fill: #374151; }
+  </style>
+  <rect width="1200" height="1080" fill="#f9fafb"/>
+  <text x="600" y="56" text-anchor="middle" class="h1">20 Claude tools built. Which ones were actually used?</text>
+  <text x="600" y="86" text-anchor="middle" class="sub">Checked against the project's activity log, review report and handover notes</text>
+
+  <!-- key + totals -->
+  <rect x="200" y="108" width="22" height="22" rx="4" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="230" y="125" class="k">✔ Used: 10</text>
+  <rect x="470" y="108" width="22" height="22" rx="4" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+  <text x="500" y="125" class="k">⚠ Partly used: 2</text>
+  <rect x="760" y="108" width="22" height="22" rx="4" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+  <text x="790" y="125" class="k">○ Never tried: 8</text>
+
+  <!-- Agents -->
+  <text x="40" y="180" class="g">👥 Agents (helpers)</text>
+  <g>
+    <rect x="40" y="194" width="360" height="80" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+    <text x="58" y="220" class="t">🧭 Project Manager</text><text x="382" y="220" text-anchor="end" class="s" fill="#6b7280">○ NEVER TRIED</text>
+    <text x="58" y="242" class="d">No record of it running. The main</text><text x="58" y="260" class="d">session handed out the work instead.</text>
+
+    <rect x="420" y="194" width="360" height="80" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+    <text x="438" y="220" class="t">🔧 Back-office Builder</text><text x="762" y="220" text-anchor="end" class="s" fill="#15803d">✔ USED</text>
+    <text x="438" y="242" class="d">Built the room-cleaning system</text>
+
+    <rect x="800" y="194" width="360" height="80" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+    <text x="818" y="220" class="t">🎨 Screen Designer</text><text x="1142" y="220" text-anchor="end" class="s" fill="#6b7280">○ NEVER TRIED</text>
+    <text x="818" y="242" class="d">No screens were made</text>
+
+    <rect x="40" y="286" width="360" height="80" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+    <text x="58" y="312" class="t">🧪 Tester</text><text x="382" y="312" text-anchor="end" class="s" fill="#15803d">✔ USED</text>
+    <text x="58" y="334" class="d">Wrote failing checks first, then</text><text x="58" y="352" class="d">the code was built to pass them</text>
+
+    <rect x="420" y="286" width="360" height="80" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+    <text x="438" y="312" class="t">🔍 Inspector</text><text x="762" y="312" text-anchor="end" class="s" fill="#15803d">✔ USED</text>
+    <text x="438" y="334" class="d">Wrote the review report</text><text x="438" y="352" class="d">(9 problems found)</text>
+
+    <rect x="800" y="286" width="360" height="80" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+    <text x="818" y="312" class="t">📊 Data Expert</text><text x="1142" y="312" text-anchor="end" class="s" fill="#15803d">✔ USED</text>
+    <text x="818" y="334" class="d">Wrote the database study</text>
+  </g>
+
+  <!-- Skills -->
+  <text x="40" y="420" class="g">📝 Skills (recipes)</text>
+  <g>
+    <rect x="40" y="434" width="360" height="70" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+    <text x="58" y="460" class="t">Spec writer</text><text x="382" y="460" text-anchor="end" class="s" fill="#15803d">✔ USED</text>
+    <text x="58" y="482" class="d">Wrote the cleaning-board requirements</text>
+
+    <rect x="420" y="434" width="360" height="70" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+    <text x="438" y="460" class="t">Prompt journal</text><text x="762" y="460" text-anchor="end" class="s" fill="#15803d">✔ USED</text>
+    <text x="438" y="482" class="d">24 diary entries (1 written by hand)</text>
+
+    <rect x="800" y="434" width="360" height="70" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+    <text x="818" y="460" class="t">End-of-shift note</text><text x="1142" y="460" text-anchor="end" class="s" fill="#15803d">✔ USED</text>
+    <text x="818" y="482" class="d">A handover note was written</text>
+  </g>
+
+  <!-- Commands -->
+  <text x="40" y="558" class="g">🔘 Shortcut buttons</text>
+  <g>
+    <rect x="40" y="572" width="265" height="70" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+    <text x="58" y="598" class="t">/plan</text><text x="287" y="598" text-anchor="end" class="s" fill="#15803d">✔ USED</text>
+    <text x="58" y="620" class="d">Planned 2 pieces of work</text>
+
+    <rect x="322" y="572" width="265" height="70" rx="10" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+    <text x="340" y="598" class="t">/implement</text><text x="569" y="598" text-anchor="end" class="s" fill="#b45309">⚠ PARTLY</text>
+    <text x="340" y="620" class="d">Started, never finished</text>
+
+    <rect x="604" y="572" width="265" height="70" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+    <text x="622" y="598" class="t">/handoff</text><text x="851" y="598" text-anchor="end" class="s" fill="#6b7280">○ NEVER TRIED</text>
+    <text x="622" y="620" class="d">Never typed as a command</text>
+
+    <rect x="886" y="572" width="274" height="70" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+    <text x="904" y="598" class="t">/reflect</text><text x="1142" y="598" text-anchor="end" class="s" fill="#6b7280">○ NEVER TRIED</text>
+    <text x="904" y="620" class="d">Never typed as a command</text>
+  </g>
+
+  <!-- Hooks -->
+  <text x="40" y="696" class="g">🚨 Automatic checks</text>
+  <g>
+    <rect x="40" y="710" width="212" height="80" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+    <text x="56" y="736" class="t">Log messages</text>
+    <text x="56" y="758" class="s" fill="#15803d">✔ USED</text>
+    <text x="56" y="778" class="d">Ran by itself</text>
+
+    <rect x="267" y="710" width="212" height="80" rx="10" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+    <text x="283" y="736" class="t">End-of-shift note</text>
+    <text x="283" y="758" class="s" fill="#15803d">✔ USED</text>
+    <text x="283" y="778" class="d">2 bugs found and fixed</text>
+
+    <rect x="494" y="710" width="212" height="80" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+    <text x="510" y="736" class="t">Block risky commands</text>
+    <text x="510" y="758" class="s" fill="#6b7280">○ NEVER TRIED</text>
+    <text x="510" y="778" class="d">Never seen firing</text>
+
+    <rect x="721" y="710" width="212" height="80" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+    <text x="737" y="736" class="t">Rebuild after change</text>
+    <text x="737" y="758" class="s" fill="#6b7280">○ NEVER TRIED</text>
+    <text x="737" y="778" class="d">Never seen firing</text>
+
+    <rect x="948" y="710" width="212" height="80" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+    <text x="964" y="736" class="t">Placeholder</text>
+    <text x="964" y="758" class="s" fill="#6b7280">○ DOES NOTHING</text>
+    <text x="964" y="778" class="d">Empty by design</text>
+  </g>
+
+  <!-- MCP + plugin -->
+  <text x="40" y="844" class="g">🔌 Data connection  ·  🎀 Add-on</text>
+  <g>
+    <rect x="40" y="858" width="550" height="80" rx="10" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+    <text x="58" y="884" class="t">Data connection (MCP server)</text><text x="572" y="884" text-anchor="end" class="s" fill="#b45309">⚠ PARTLY</text>
+    <text x="58" y="906" class="d">Built and tested on its own, but never connected</text>
+    <text x="58" y="924" class="d">to a real database</text>
+
+    <rect x="610" y="858" width="550" height="80" rx="10" fill="#f3f4f6" stroke="#9ca3af" stroke-width="2"/>
+    <text x="628" y="884" class="t">ponytail add-on</text><text x="1142" y="884" text-anchor="end" class="s" fill="#6b7280">○ NEVER TRIED</text>
+    <text x="628" y="906" class="d">Never switched on</text>
+  </g>
+
+  <!-- bar -->
+  <text x="40" y="992" class="g">Overall</text>
+  <rect x="160" y="974" width="498" height="26" rx="4" fill="#15803d"/>
+  <rect x="660" y="974" width="98" height="26" rx="4" fill="#b45309"/>
+  <rect x="760" y="974" width="400" height="26" rx="4" fill="#9ca3af"/>
+  <text x="409" y="992" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">✔ 10 used (50%)</text>
+  <text x="709" y="992" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">⚠ 2</text>
+  <text x="960" y="992" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">○ 8 never tried (40%)</text>
+  <text x="600" y="1046" text-anchor="middle" class="sub">Not counted: 4 rule books and 13 written plans (documents, not tools).</text>
+</svg>

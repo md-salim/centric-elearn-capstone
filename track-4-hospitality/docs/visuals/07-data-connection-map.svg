@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1060" viewBox="0 0 1200 1060" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4b5563"/></marker>
+    <pattern id="hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="10" stroke="#d1d5db" stroke-width="4"/></pattern>
+  </defs>
+  <style>
+    .h1 { font-size: 32px; font-weight: 700; fill: #1f2937; }
+    .sub { font-size: 16px; fill: #4b5563; }
+    .t { font-size: 18px; font-weight: 700; fill: #111827; }
+    .d { font-size: 14px; fill: #4b5563; }
+    .m { font-size: 13px; fill: #374151; font-family: Consolas, monospace; }
+    .s { font-size: 13px; font-weight: 700; }
+  </style>
+  <rect width="1200" height="1060" fill="#f9fafb"/>
+  <text x="600" y="56" text-anchor="middle" class="h1">The data connection: what Claude can and cannot see</text>
+  <text x="600" y="86" text-anchor="middle" class="sub">The "larchmont" MCP server gives Claude look-only access to hotel operations data</text>
+
+  <!-- chain -->
+  <rect x="40" y="120" width="200" height="110" rx="14" fill="#1f2937"/>
+  <text x="140" y="168" text-anchor="middle" font-size="22" font-weight="700" fill="#fff">🤖 Claude</text>
+  <text x="140" y="196" text-anchor="middle" font-size="13" fill="#d1d5db">asks a question</text>
+  <line x1="240" y1="175" x2="296" y2="175" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <rect x="300" y="120" width="420" height="300" rx="14" fill="#ecfeff" stroke="#0891b2" stroke-width="2"/>
+  <text x="322" y="152" class="t">🔌 Data connection (MCP server)</text>
+  <text x="322" y="176" class="d">Offers 5 ready-made questions:</text>
+  <text x="322" y="210" class="d">1. Which rooms are late being cleaned?</text>
+  <text x="322" y="238" class="d">2. How many rooms are lost to repairs?</text>
+  <text x="322" y="266" class="d">3. How busy is each cleaner?</text>
+  <text x="322" y="294" class="d">4. Which arriving guests have no ready room?</text>
+  <text x="322" y="322" class="d">5. A custom question (only on the safe</text>
+  <text x="340" y="340" class="d">views, and only reading)</text>
+  <text x="322" y="374" class="d">Every question is written to an audit log.</text>
+  <text x="322" y="398" class="d">Anything that would change data is blocked.</text>
+  <line x1="720" y1="175" x2="776" y2="175" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <rect x="780" y="120" width="380" height="110" rx="14" fill="#fff" stroke="#0891b2" stroke-width="2"/>
+  <text x="802" y="152" class="t">🔑 Look-only login</text>
+  <text x="802" y="176" class="m">mcp_readonly</text>
+  <text x="802" y="202" class="d">Can only read the 5 safe views below.</text>
+  <line x1="970" y1="230" x2="970" y2="276" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <rect x="780" y="280" width="380" height="250" rx="14" fill="#f0fdf4" stroke="#15803d" stroke-width="2"/>
+  <text x="802" y="312" class="t">▦ 5 safe "windows" (views)</text>
+  <text x="802" y="342" class="m">vw_rooms_status</text><text x="1140" y="342" text-anchor="end" class="d">every room</text>
+  <text x="802" y="372" class="m">vw_sla_breaches</text><text x="1140" y="372" text-anchor="end" class="d">late rooms</text>
+  <text x="802" y="402" class="m">vw_ooo_impact</text><text x="1140" y="402" text-anchor="end" class="d">repairs</text>
+  <text x="802" y="432" class="m">vw_housekeeper_load</text><text x="1140" y="432" text-anchor="end" class="d">cleaners</text>
+  <text x="802" y="462" class="m">vw_arrivals_vs_ready</text><text x="1140" y="462" text-anchor="end" class="d">arrivals</text>
+  <text x="802" y="502" class="d">They show only the columns that are needed.</text>
+  <line x1="970" y1="530" x2="970" y2="576" stroke="#4b5563" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#a)"/>
+
+  <rect x="780" y="580" width="380" height="120" rx="14" fill="url(#hatch)" stroke="#6b7280" stroke-width="2"/>
+  <rect x="800" y="598" width="340" height="84" rx="8" fill="#fff" fill-opacity="0.92"/>
+  <text x="818" y="628" class="t">🗄 Full hotel database</text>
+  <text x="818" y="654" class="d">Guests, bookings, staff, passwords...</text>
+  <text x="818" y="674" class="s" fill="#b91c1c">✖ Claude cannot reach this directly</text>
+
+  <!-- can / cannot -->
+  <rect x="40" y="450" width="330" height="250" rx="14" fill="#fff" stroke="#15803d" stroke-width="2"/>
+  <text x="62" y="484" class="t" fill="#15803d">✔ Claude CAN see</text>
+  <text x="62" y="516" class="d">• Room numbers and floors</text>
+  <text x="62" y="544" class="d">• Cleaning status and timers</text>
+  <text x="62" y="572" class="d">• Which rooms are broken</text>
+  <text x="62" y="600" class="d">• Cleaners' display names</text>
+  <text x="62" y="628" class="d">• Arrivals vs ready rooms</text>
+
+  <rect x="390" y="450" width="330" height="250" rx="14" fill="#fff" stroke="#b91c1c" stroke-width="2"/>
+  <text x="412" y="484" class="t" fill="#b91c1c">✖ Claude CANNOT</text>
+  <text x="412" y="516" class="d">• See guest names</text>
+  <text x="412" y="544" class="d">• See emails, phones, addresses</text>
+  <text x="412" y="572" class="d">• See passwords or private notes</text>
+  <text x="412" y="600" class="d">• Change, add or delete anything</text>
+  <text x="412" y="628" class="d">• Open the raw tables</text>
+
+  <!-- status -->
+  <rect x="40" y="730" width="1120" height="290" rx="14" fill="#fffbeb" stroke="#b45309" stroke-width="2"/>
+  <text x="64" y="766" class="t">⚠ Current status</text>
+  <text x="64" y="800" class="s" fill="#15803d">✔ BUILT</text>
+  <text x="230" y="800" class="d">Server, 5 questions, safety rules and 167 automatic checks are all written.</text>
+  <text x="64" y="834" class="s" fill="#b45309">⚠ NOT CONNECTED</text>
+  <text x="230" y="834" class="d">It has never talked to a real database. There is no database on this computer yet.</text>
+  <text x="64" y="868" class="s" fill="#b45309">⚠ NOT SWITCHED ON</text>
+  <text x="230" y="868" class="d">Claude only loads it when the track-4-hospitality folder is opened on its own.</text>
+  <text x="64" y="902" class="s" fill="#b91c1c">✖ SECURITY</text>
+  <text x="230" y="902" class="d">The look-only login's password is written in plain text in the settings file (.mcp.json),</text>
+  <text x="230" y="924" class="d">which is on GitHub. It should be changed and kept somewhere private.</text>
+  <text x="64" y="966" class="d">To make it work: install MySQL 8.4 → set up the database → create the 5 views → create the look-only login</text>
+  <text x="64" y="990" class="d">→ build the server → open the project folder in Claude.</text>
+</svg>

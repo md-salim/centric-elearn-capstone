@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1140" viewBox="0 0 1200 1140" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4b5563"/></marker>
+  </defs>
+  <style>
+    .h1 { font-size: 32px; font-weight: 700; fill: #1f2937; }
+    .sub { font-size: 16px; fill: #4b5563; }
+    .st { font-size: 20px; font-weight: 700; fill: #111827; }
+    .d { font-size: 14px; fill: #4b5563; }
+    .e { font-size: 13px; fill: #374151; font-style: italic; }
+    .t { font-size: 17px; font-weight: 700; fill: #111827; }
+  </style>
+  <rect width="1200" height="1140" fill="#f9fafb"/>
+  <text x="600" y="56" text-anchor="middle" class="h1">A hotel room's cleaning journey</text>
+  <text x="600" y="86" text-anchor="middle" class="sub">The only moves the system allows. Anything else is refused with a clear message.</text>
+
+  <!-- checkout pill -->
+  <rect x="80" y="120" width="280" height="56" rx="28" fill="#1f2937"/>
+  <text x="220" y="154" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">🧳 Guest checks out</text>
+  <text x="380" y="146" class="d">at the desk, or the door lock reports it</text>
+  <text x="380" y="166" class="d">⏱ the cleaning timer starts here</text>
+  <line x1="220" y1="176" x2="220" y2="236" stroke="#4b5563" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- states -->
+  <rect x="120" y="240" width="200" height="90" rx="14" fill="#fee2e2" stroke="#b91c1c" stroke-width="2"/>
+  <text x="220" y="280" text-anchor="middle" class="st">🧺 Dirty</text>
+  <text x="220" y="304" text-anchor="middle" class="d">waiting for a cleaner</text>
+
+  <rect x="400" y="240" width="200" height="90" rx="14" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+  <text x="500" y="280" text-anchor="middle" class="st">🧹 Cleaning</text>
+  <text x="500" y="304" text-anchor="middle" class="d">cleaner is in the room</text>
+
+  <rect x="680" y="240" width="200" height="90" rx="14" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="780" y="280" text-anchor="middle" class="st">🔍 Inspected</text>
+  <text x="780" y="304" text-anchor="middle" class="d">supervisor checked it</text>
+
+  <rect x="960" y="240" width="200" height="90" rx="14" fill="#dcfce7" stroke="#15803d" stroke-width="2"/>
+  <text x="1060" y="280" text-anchor="middle" class="st">✅ Ready</text>
+  <text x="1060" y="304" text-anchor="middle" class="d">can be sold to a guest</text>
+
+  <line x1="320" y1="285" x2="396" y2="285" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="600" y1="285" x2="676" y2="285" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="880" y1="285" x2="956" y2="285" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+
+  <!-- shortcut -->
+  <path d="M 500 240 C 560 180, 1000 180, 1050 236" fill="none" stroke="#b45309" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#a)"/>
+  <text x="775" y="196" text-anchor="middle" class="e">Shortcut: cleaner marks it Ready without inspection, flagged for the manager</text>
+
+  <!-- OOO -->
+  <rect x="440" y="480" width="320" height="96" rx="14" fill="#f3f4f6" stroke="#4b5563" stroke-width="2"/>
+  <text x="600" y="520" text-anchor="middle" class="st">🚧 Out of order</text>
+  <text x="600" y="546" text-anchor="middle" class="d">broken, cannot be given to a guest</text>
+  <text x="600" y="565" text-anchor="middle" class="d">(a reason must be given)</text>
+
+  <line x1="240" y1="330" x2="470" y2="476" stroke="#9ca3af" stroke-width="1.8" marker-end="url(#a)"/>
+  <line x1="500" y1="330" x2="560" y2="476" stroke="#9ca3af" stroke-width="1.8" marker-end="url(#a)"/>
+  <line x1="770" y1="330" x2="660" y2="476" stroke="#9ca3af" stroke-width="1.8" marker-end="url(#a)"/>
+  <line x1="1040" y1="330" x2="740" y2="476" stroke="#9ca3af" stroke-width="1.8" marker-end="url(#a)"/>
+  <text x="600" y="420" text-anchor="middle" class="e">any room can be taken out of service</text>
+
+  <path d="M 440 540 C 200 560, 150 440, 190 334" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#a)"/>
+  <text x="150" y="560" class="e">once repaired → back to Dirty</text>
+
+  <!-- timer -->
+  <rect x="40" y="620" width="1120" height="150" rx="14" fill="#fff" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="64" y="656" class="t">⏱ The cleaning target</text>
+  <text x="64" y="684" class="d">The clock starts when the guest checks out and stops when the room is Ready.</text>
+  <rect x="64" y="704" width="560" height="26" rx="4" fill="#15803d"/>
+  <text x="74" y="722" font-size="13" font-weight="700" fill="#fff">Standard rooms: 45 minutes</text>
+  <rect x="64" y="736" width="934" height="26" rx="4" fill="#1d4ed8"/>
+  <text x="74" y="754" font-size="13" font-weight="700" fill="#fff">Family rooms and suites: 75 minutes</text>
+  <text x="1012" y="754" class="d">Over = "late"</text>
+
+  <!-- bug -->
+  <rect x="40" y="790" width="1120" height="320" rx="14" fill="#fef2f2" stroke="#b91c1c" stroke-width="2"/>
+  <text x="64" y="828" class="t" fill="#991b1b">✖ Open bug A: the timer never resets</text>
+  <text x="64" y="856" class="d">After a room's first clean, the system keeps the old checkout time for every later guest.</text>
+
+  <text x="64" y="902" font-size="15" font-weight="700" fill="#111827">Monday</text>
+  <text x="180" y="902" class="d">Guest leaves 10:00 → cleaned → Ready 10:30</text>
+  <text x="840" y="902" font-size="14" font-weight="700" fill="#15803d">✔ on time</text>
+
+  <text x="64" y="942" font-size="15" font-weight="700" fill="#111827">Wednesday</text>
+  <text x="180" y="942" class="d">Next guest leaves 10:00 → room goes Dirty</text>
+
+  <text x="180" y="972" class="d">The timer should start at Wednesday 10:00,</text>
+  <text x="180" y="994" class="d">but still uses Monday 10:00</text>
+  <text x="840" y="984" font-size="14" font-weight="700" fill="#b91c1c">✖ shows ~2 days late</text>
+
+  <text x="64" y="1040" class="d">The same bug makes broken rooms show as "late" forever, with the minutes growing.</text>
+  <text x="64" y="1066" class="d">Fix: start a fresh timer at each new checkout, and leave out-of-order rooms off the late list.</text>
+  <text x="64" y="1092" font-size="12" fill="#6b7280">Code: backend/Larchmont.Api/Services/HousekeepingService.cs, line 361</text>
+</svg>

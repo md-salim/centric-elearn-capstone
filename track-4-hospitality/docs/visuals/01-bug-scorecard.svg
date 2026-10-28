@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1010" viewBox="0 0 1200 1010" font-family="Segoe UI, Arial, sans-serif">
+  <style>
+    .h1 { font-size: 32px; font-weight: 700; fill: #1f2937; }
+    .sub { font-size: 16px; fill: #4b5563; }
+    .col { font-size: 24px; font-weight: 700; fill: #fff; }
+    .t { font-size: 16px; font-weight: 700; fill: #111827; }
+    .d { font-size: 14px; fill: #4b5563; }
+    .chip { font-size: 12px; font-weight: 700; fill: #fff; }
+    .big { font-size: 20px; font-weight: 700; fill: #111827; }
+  </style>
+  <rect width="1200" height="1010" fill="#f9fafb"/>
+  <text x="600" y="56" text-anchor="middle" class="h1">Bug Scorecard: Larchmont Hotels</text>
+  <text x="600" y="86" text-anchor="middle" class="sub">What Claude found, what got fixed, and what is still waiting</text>
+
+  <!-- Summary bar -->
+  <text x="40" y="128" class="big">8 fixed · 7 still open</text>
+  <rect x="300" y="110" width="453" height="24" rx="4" fill="#15803d"/>
+  <rect x="755" y="110" width="405" height="24" rx="4" fill="#b91c1c"/>
+  <text x="526" y="127" text-anchor="middle" class="chip">✔ FIXED 8</text>
+  <text x="957" y="127" text-anchor="middle" class="chip">✖ OPEN 7</text>
+
+  <!-- FIXED column -->
+  <rect x="40" y="160" width="550" height="810" rx="14" fill="#fff" stroke="#15803d" stroke-width="2"/>
+  <rect x="40" y="160" width="550" height="50" rx="14" fill="#15803d"/>
+  <rect x="40" y="190" width="550" height="20" fill="#15803d"/>
+  <text x="62" y="194" class="col">✔ Found and fixed</text>
+
+  <g>
+    <text x="62" y="248" class="t">1. Occupancy report showed hotels too full</text>
+    <text x="62" y="270" class="d">Checkout morning counted as a night. Showed 45%, really 25%.</text>
+    <text x="62" y="290" class="d">Rates were being set from the wrong number.</text>
+    <line x1="62" y1="310" x2="568" y2="310" stroke="#e5e7eb"/>
+
+    <text x="62" y="340" class="t">2. Staff list leaked private details</text>
+    <text x="62" y="362" class="d">It sent password codes, emails and phone numbers.</text>
+    <text x="62" y="382" class="d">Now shows only name, job, hotel and active status.</text>
+    <line x1="62" y1="402" x2="568" y2="402" stroke="#e5e7eb"/>
+
+    <text x="62" y="432" class="t">3. Broken rooms could be given to guests</text>
+    <text x="62" y="454" class="d">The system now refuses with a clear message.</text>
+    <line x1="62" y1="474" x2="568" y2="474" stroke="#e5e7eb"/>
+
+    <text x="62" y="504" class="t">4. Wrong requests could crash the system</text>
+    <text x="62" y="526" class="d">Now they get a clear "not allowed" answer.</text>
+    <line x1="62" y1="546" x2="568" y2="546" stroke="#e5e7eb"/>
+
+    <text x="62" y="576" class="t">5. Message log saved screen clutter</text>
+    <text x="62" y="598" class="d">The clutter is now stripped out.</text>
+    <line x1="62" y1="618" x2="568" y2="618" stroke="#e5e7eb"/>
+
+    <text x="62" y="648" class="t">6. Handover notes showed personal folder paths</text>
+    <text x="62" y="670" class="d">Paths are now shown relative to the project.</text>
+    <line x1="62" y1="690" x2="568" y2="690" stroke="#e5e7eb"/>
+
+    <text x="62" y="720" class="t">7. Database link had no automatic test</text>
+    <text x="62" y="742" class="d">An automatic test run was added on GitHub.</text>
+    <line x1="62" y1="762" x2="568" y2="762" stroke="#e5e7eb"/>
+
+    <text x="62" y="792" class="t">8. Tests would not run on this computer</text>
+    <text x="62" y="814" class="d">Moved the project to .NET 10. All 62 tests now pass.</text>
+    <text x="62" y="834" class="d">(Fixed today, 28 Oct 2026.)</text>
+  </g>
+
+  <!-- OPEN column -->
+  <rect x="610" y="160" width="550" height="810" rx="14" fill="#fff" stroke="#b91c1c" stroke-width="2"/>
+  <rect x="610" y="160" width="550" height="50" rx="14" fill="#b91c1c"/>
+  <rect x="610" y="190" width="550" height="20" fill="#b91c1c"/>
+  <text x="632" y="194" class="col">✖ Found but not fixed yet</text>
+
+  <g>
+    <rect x="1060" y="232" width="78" height="22" rx="11" fill="#b91c1c"/><text x="1099" y="248" text-anchor="middle" class="chip">▲ HIGH</text>
+    <text x="632" y="248" class="t">A. Cleaning timer never resets</text>
+    <text x="632" y="270" class="d">The next guest's checkout keeps the old time, so a room</text>
+    <text x="632" y="290" class="d">cleaned on time shows as two days late.</text>
+    <line x1="632" y1="310" x2="1138" y2="310" stroke="#e5e7eb"/>
+
+    <rect x="1060" y="324" width="78" height="22" rx="11" fill="#b91c1c"/><text x="1099" y="340" text-anchor="middle" class="chip">▲ HIGH</text>
+    <text x="632" y="340" class="t">B. Passwords saved in project files</text>
+    <text x="632" y="362" class="d">Readable by anyone with access to the project.</text>
+    <text x="632" y="382" class="d">Account owners must change them.</text>
+    <line x1="632" y1="402" x2="1138" y2="402" stroke="#e5e7eb"/>
+
+    <rect x="1048" y="416" width="90" height="22" rx="11" fill="#b45309"/><text x="1093" y="432" text-anchor="middle" class="chip">● MEDIUM</text>
+    <text x="632" y="432" class="t">C. GitHub check is out of date</text>
+    <text x="632" y="454" class="d">Wrong .NET version and wrong folder name.</text>
+    <line x1="632" y1="474" x2="1138" y2="474" stroke="#e5e7eb"/>
+
+    <rect x="1048" y="488" width="90" height="22" rx="11" fill="#b45309"/><text x="1093" y="504" text-anchor="middle" class="chip">● MEDIUM</text>
+    <text x="632" y="504" class="t">D. Anyone can claim to be anyone</text>
+    <text x="632" y="526" class="d">No login yet, so the change record can be faked.</text>
+    <line x1="632" y1="546" x2="1138" y2="546" stroke="#e5e7eb"/>
+
+    <rect x="1048" y="560" width="90" height="22" rx="11" fill="#b45309"/><text x="1093" y="576" text-anchor="middle" class="chip">● MEDIUM</text>
+    <text x="632" y="576" class="t">E. Old door-lock messages accepted</text>
+    <text x="632" y="598" class="d">Can mark an occupied room as dirty.</text>
+    <line x1="632" y1="618" x2="1138" y2="618" stroke="#e5e7eb"/>
+
+    <rect x="1048" y="632" width="90" height="22" rx="11" fill="#b45309"/><text x="1093" y="648" text-anchor="middle" class="chip">● MEDIUM</text>
+    <text x="632" y="648" class="t">F. Two managers editing at once</text>
+    <text x="632" y="670" class="d">The last one silently overwrites the other.</text>
+    <line x1="632" y1="690" x2="1138" y2="690" stroke="#e5e7eb"/>
+
+    <rect x="1048" y="704" width="90" height="22" rx="11" fill="#b45309"/><text x="1093" y="720" text-anchor="middle" class="chip">● MEDIUM</text>
+    <text x="632" y="720" class="t">G. Missing proof</text>
+    <text x="632" y="742" class="d">Many rules have no automatic check,</text>
+    <text x="632" y="762" class="d">including the occupancy fix (1).</text>
+
+    <rect x="632" y="800" width="506" height="146" rx="10" fill="#fef2f2"/>
+    <text x="650" y="828" class="t">Why are these still open?</text>
+    <text x="650" y="852" class="d">• The Inspector only reports. No fix round was run.</text>
+    <text x="650" y="874" class="d">• B needs the account owners to change passwords.</text>
+    <text x="650" y="896" class="d">• D and E wait on manager decisions (login, rules).</text>
+    <text x="650" y="918" class="d">• C was set aside for a separate task.</text>
+    <text x="650" y="940" class="d">• F and G need a real database to test.</text>
+  </g>
+
+  <text x="600" y="996" text-anchor="middle" class="sub">Source: docs/review-report.md, docs/bug-LH-56.md, and checking the code itself</text>
+</svg>
